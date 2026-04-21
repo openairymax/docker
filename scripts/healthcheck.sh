@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
 # AgentOS 健康检查脚本 (Health Check Script)
-# 版本: 2.0.0 (Production-Grade)
-# 用途: 全面检查 AgentOS Docker 服务集群的健康状态
+# 版本：2.0.1 (Production-Grade)
+# 用途：全面检查 AgentOS Docker 服务集群的健康状态
 #
 # 使用方法:
 #   ./scripts/healthcheck.sh                    # 检查开发环境

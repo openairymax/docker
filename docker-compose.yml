@@ -1,9 +1,7 @@
-version: '3.8'
-
 # =============================================================================
 # AgentOS Docker Compose - 开发环境 (Development)
-# 版本: 2.0.1 (Production-Grade Dev Environment)
-# 最后更新: 2026-04-15
+# 版本：2.0.1 (Production-Grade Dev Environment)
+# 最后更新：2026-04-15
 #
 # 🎯 设计原则:
 # ✅ 与生产环境保持一致的架构（便于迁移）
