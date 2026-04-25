@@ -1,8 +1,8 @@
 # AgentOS Docker 部署方案 - 生产级容器化架构
 
 <p align="center">
-  <strong>版本: 2.0.1 (Production-Grade) | 最后更新: 2026-04-15</strong><br>
-  <em>基于 CIS Docker Benchmark 合规 | 支持高可用部署 | 内置可观测性</em>
+  <strong>版本: 3.0.0 (Enterprise-Grade) | 最后更新: 2026-04-23</strong><br>
+  <em>基于 CIS Docker Benchmark 合规 | 支持多环境部署 | 内置 CI/CD</em>
 </p>
 
 ---
@@ -290,14 +290,20 @@ docker compose version     # 应输出: Docker Compose version v2.x.x
 
 ```bash
 # ============================================================
-# 步骤 1: 克隆仓库
+# 方式一: 使用快速启动脚本 (推荐)
+# ============================================================
+./docker/scripts/quick-start.sh dev
+
+# ============================================================
+# 方式二: 使用 Make 命令
+# ============================================================
+make dev
+
+# ============================================================
+# 方式三: 使用 Docker Compose (传统方式)
 # ============================================================
 git clone https://gitcode.com/spharx/agentos.git
 cd agentos
-
-# ============================================================
-# 步骤 2: 启动核心服务 (Kernel + Gateway + DB + Cache)
-# ============================================================
 docker compose -f docker/docker-compose.yml up -d
 
 # 输出示例:
@@ -307,8 +313,10 @@ docker compose -f docker/docker-compose.yml up -d
 # ✔ Container agentos-gateway-dev    Started (healthy)
 
 # ============================================================
-# 步骤 3: 启动监控栈 (可选, 但推荐)
+# 启动完整栈 (含监控)
 # ============================================================
+make dev-full
+# 或
 docker compose -f docker/docker-compose.yml --profile monitoring up -d
 
 # 输出示例:
@@ -316,17 +324,10 @@ docker compose -f docker/docker-compose.yml --profile monitoring up -d
 # ✔ Container agentos-grafana-dev     Started
 
 # ============================================================
-# 步骤 4: 验证服务状态
+# 验证部署状态
 # ============================================================
-docker compose -f docker/docker-compose.yml ps
-
-# 预期输出:
-# NAME                    STATUS                   PORTS
-# agentos-gateway-dev     running (healthy)       0.0.0.0:18789->18789/tcp, 0.0.0.0:18790->18790/tcp
-# agentos-kernel-dev      running (healthy)       0.0.0.0:18080->18080/tcp, 0.0.0.0:9090->9090/tcp
-# agentos-postgres-dev    running (healthy)       0.0.0.0:5432->5432/tcp
-# agentos-redis-dev       running (healthy)       0.0.0.0:6379->6379/tcp
-```
+make healthcheck
+make status
 
 ### 4.2 生产环境部署
 
@@ -1912,6 +1913,58 @@ docker/
 
 ### 12. 版本更新日志
 
+#### v3.0.0 (2026-04-23) - Enterprise-Grade Major Release
+
+**🎉 重大更新:**
+
+##### ✨ 新功能 (Features)
+
+- **Staging 预发布环境**: 新增 `docker-compose.staging.yml`，与生产环境 1:1 复刻
+  - 独立数据卷，与开发/生产完全隔离
+  - 默认启用完整监控栈 (Prometheus + Grafana)
+  - 用于预发布验证、压力测试、回归测试
+- **Makefile 命令集**: 提供 30+ 个常用运维命令
+  - `make dev/prod/staging` 一键启动各环境
+  - `make logs/status/healthcheck` 快速诊断
+  - `make build/clean/security` 构建管理
+  - `make backup/restore/list-backups` 备份操作
+  - `make shell-*` 快速进入容器
+- **快速启动脚本**: `scripts/quick-start.sh` 交互式 CLI 工具
+  - 自动环境检查 (Docker 版本、内存、磁盘)
+  - 彩色输出 + Logo 展示
+  - 启动后自动显示访问地址和常用命令
+- **CI/CD Pipeline**: GitHub Actions 完整工作流
+  - 多阶段: 构建 → 安全扫描 → 集成测试 → 性能基准 → 发布
+  - Trivy 漏洞扫描 + SARIF 报告上传
+  - Docker Buildx 多平台构建支持
+  - Slack 通知集成
+- **Nginx 反向代理配置**: 生产级负载均衡配置
+  - SSL/TLS 终端 + HTTP/2 支持
+  - WebSocket 代理 + CORS 处理
+  - Grafana 子路径代理 + Basic Auth
+  - 安全头配置 (HSTS/XSS-Protection/CSP)
+- **日志聚合方案**: Fluent Bit 配置模板
+  - 支持 Loki/Elasticsearch/CloudWatch 输出
+  - Kubernetes 元数据注入
+  - 结构化 JSON 日志解析
+
+##### 🔒 安全增强 (Security Hardening)
+
+- **Trivy 安全扫描配置**: `.trivy.yml` 扫描策略文件
+  - CVE 白名单管理
+  - Dockerfile 最佳实践检查
+  - 镜像安全基线检查
+- **Dockerignore 增强**: 排除更多敏感文件
+  - CI/CD 文件排除
+  - 安全报告文件排除
+  - 备份文件排除
+
+##### 📚 文档改进 (Documentation)
+
+- **README.md v3.0.0**: 更新快速开始指南，新增 Make 和脚本用法
+
+---
+
 #### v2.0.0 (2026-04-06) - Production-Grade Major Release
 
 **🎉 重大更新:**
@@ -2020,5 +2073,5 @@ docker compose -f docker/docker-compose.prod.yml \
 
 <p align="center">
   <strong>Made with ❤️ by SPHARX Platform Team</strong><br>
-  <em>Last Updated: 2026-04-06 | Version: 2.0.0 (Production-Grade)</em>
+  <em>Last Updated: 2026-04-23 | Version: 3.0.0 (Enterprise-Grade)</em>
 </p>
