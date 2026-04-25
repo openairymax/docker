@@ -1,9 +1,7 @@
-version: '3.8'
-
 # =============================================================================
 # AgentOS Docker Compose - 生产环境 (Production)
-# 版本: 2.0.1 (High-Availability Production Deployment)
-# 最后更新: 2026-04-15
+# 版本：2.0.1 (High-Availability Production Deployment)
+# 最后更新：2026-04-15
 #
 # 🎯 生产级设计原则:
 # 🔒 安全第一: 最小权限、只读文件系统、seccomp 加固、禁止特权模式
