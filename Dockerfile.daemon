@@ -1,10 +1,10 @@
 # =============================================================================
 # AgentOS Daemon Dockerfile - 生产级构建
-# 版本: 2.0.1 (Production-Ready)
-# 最后更新: 2026-04-15
+# 版本: 3.0.0 (Enterprise-Grade Multi-Target)
+# 最后更新: 2026-04-23
 #
 # 🎯 生产级特性:
-# ✅ 多目标构建 (Builder → Runtime → Gateway → Debug)
+# ✅ 多目标构建 (Builder → Runtime → Gateway → LLM → Tool → Market → Scheduler → Monitor → Debug)
 # ✅ 进程管理 (Supervisor + 健康检查)
 # ✅ 安全加固 (非root、最小权限、只读文件系统)
 # ✅ 端口最小化 (仅暴露必要端口)
@@ -171,7 +171,101 @@ ENV GATEWAY_ENABLED=true \
 CMD ["bash", "-c", "supervisord -c /etc/supervisor/supervisord.conf & sleep 2 && exec /app/bin/gateway-server --config /app/config/gateway.yaml"]
 
 # =============================================================================
-# 阶段4: 调试版本 (Debug)
+# 阶段4: LLM Daemon 服务 (LLM) - 大语言模型推理
+# 源码位置: agentos/daemon/llm_d/
+# 端口: 8080
+# =============================================================================
+FROM runtime AS llm
+
+# 复制 LLM 配置
+COPY docker/config/daemon/llm.yaml /app/config/daemon.yaml
+
+EXPOSE 8080/tcp
+
+ENV LLM_ENABLED=true \
+    LLM_TCP_PORT=8080 \
+    LLM_TCP_HOST=0.0.0.0 \
+    LLM_DEFAULT_MODEL=gpt-4 \
+    LLM_CACHE_ENABLED=true \
+    LLM_CACHE_MAX_SIZE=1000
+
+CMD ["/app/bin/llm_d", "--config", "/app/config/daemon.yaml"]
+
+# =============================================================================
+# 阶段5: Tool Daemon 服务 (Tool) - 工具执行
+# 源码位置: agentos/daemon/tool_d/
+# 端口: 8081
+# =============================================================================
+FROM runtime AS tool
+
+# 复制 Tool 配置
+COPY docker/config/daemon/tool.yaml /app/config/daemon.yaml
+
+EXPOSE 8081/tcp
+
+ENV TOOL_ENABLED=true \
+    TOOL_TCP_PORT=8081 \
+    TOOL_TCP_HOST=0.0.0.0
+
+CMD ["/app/bin/tool_d", "--config", "/app/config/daemon.yaml"]
+
+# =============================================================================
+# 阶段6: Market Daemon 服务 (Market) - 服务市场
+# 源码位置: agentos/daemon/market_d/
+# 端口: 8082
+# =============================================================================
+FROM runtime AS market
+
+# 复制 Market 配置
+COPY docker/config/daemon/market.yaml /app/config/daemon.yaml
+
+EXPOSE 8082/tcp
+
+ENV MARKET_ENABLED=true \
+    MARKET_TCP_PORT=8082 \
+    MARKET_TCP_HOST=0.0.0.0
+
+CMD ["/app/bin/market_d", "--config", "/app/config/daemon.yaml"]
+
+# =============================================================================
+# 阶段7: Scheduler Daemon 服务 (Scheduler) - 任务调度
+# 源码位置: agentos/daemon/sched_d/
+# 端口: 8083
+# =============================================================================
+FROM runtime AS scheduler
+
+# 复制 Scheduler 配置
+COPY docker/config/daemon/sched.yaml /app/config/daemon.yaml
+
+EXPOSE 8083/tcp
+
+ENV SCHEDULER_ENABLED=true \
+    SCHED_TCP_PORT=8083 \
+    SCHED_TCP_HOST=0.0.0.0
+
+CMD ["/app/bin/sched_d", "--config", "/app/config/daemon.yaml"]
+
+# =============================================================================
+# 阶段8: Monitor Daemon 服务 (Monitor) - 监控指标收集
+# 源码位置: agentos/daemon/monit_d/
+# 端口: 9090
+# =============================================================================
+FROM runtime AS monitor
+
+# 复制 Monitor 配置
+COPY docker/config/daemon/monit.yaml /app/config/daemon.yaml
+
+EXPOSE 9090/tcp
+
+ENV MONITOR_ENABLED=true \
+    MONIT_TCP_PORT=9090 \
+    MONIT_TCP_HOST=0.0.0.0 \
+    MONIT_EXPORT_INTERVAL_MS=60000
+
+CMD ["/app/bin/monit_d", "--config", "/app/config/daemon.yaml"]
+
+# =============================================================================
+# 阶段9: 调试版本 (Debug)
 # =============================================================================
 FROM runtime AS debug
 

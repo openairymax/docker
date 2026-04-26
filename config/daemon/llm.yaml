@@ -1,0 +1,52 @@
+# =============================================================================
+# LLM Daemon 配置文件
+# 版本: 3.0.0
+# 用途: LLM 服务运行参数 (模型、缓存、限流)
+# =============================================================================
+
+server:
+  tcp_port: ${LLM_TCP_PORT:-8080}
+  tcp_host: ${LLM_TCP_HOST:-0.0.0.0}
+  max_connections: 100
+  request_timeout_sec: 30
+
+llm:
+  default_model: ${LLM_DEFAULT_MODEL:-gpt-4}
+  fallback_models:
+    - gpt-3.5-turbo
+    - claude-3-sonnet
+    - deepseek-chat
+  max_tokens: 4096
+  temperature: 0.7
+  top_p: 0.9
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+
+cache:
+  enabled: ${LLM_CACHE_ENABLED:-true}
+  max_size: ${LLM_CACHE_MAX_SIZE:-1000}
+  ttl_sec: 3600
+  eviction_policy: lru
+
+providers:
+  openai:
+    api_key: ${OPENAI_API_KEY:-}
+    base_url: https://api.openai.com/v1
+    rate_limit_rpm: 3000
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY:-}
+    base_url: https://api.anthropic.com
+    rate_limit_rpm: 1000
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY:-}
+    base_url: https://api.deepseek.com
+    rate_limit_rpm: 500
+  google:
+    api_key: ${GOOGLE_API_KEY:-}
+    base_url: https://generativelanguage.googleapis.com
+    rate_limit_rpm: 1000
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: json
+  output: stdout

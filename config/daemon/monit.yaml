@@ -1,0 +1,40 @@
+# =============================================================================
+# Monitor Daemon 配置文件
+# 版本: 3.0.0
+# 用途: 监控服务运行参数 (指标收集、告警、导出)
+# =============================================================================
+
+server:
+  tcp_port: ${MONIT_TCP_PORT:-9090}
+  tcp_host: ${MONIT_TCP_HOST:-0.0.0.0}
+  max_connections: 50
+  request_timeout_sec: 30
+
+monitor:
+  export_interval_ms: ${MONIT_EXPORT_INTERVAL_MS:-60000}
+  retention_days: 30
+  aggregation_interval: 60
+
+metrics:
+  enabled:
+    - cpu_usage
+    - memory_usage
+    - disk_usage
+    - network_io
+    - request_count
+    - request_latency
+    - error_count
+    - queue_length
+
+alerts:
+  enabled: true
+  threshold:
+    cpu_percent: 90
+    memory_percent: 85
+    disk_percent: 90
+    error_rate_percent: 5
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: json
+  output: stdout
