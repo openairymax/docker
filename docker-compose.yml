@@ -289,6 +289,51 @@ services:
         tag: "{{.Name}}"
 
   # ===========================================================================
+  # AlertManager (告警路由和通知)
+  # 用途: 接收 Prometheus 告警、路由到不同接收器 (Slack/Email/PagerDuty)
+  # 启动方式: docker compose --profile monitoring up -d
+  # ===========================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: agentos-alertmanager-dev
+    hostname: agentos-alertmanager
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    ports:
+      - "9093:9093"
+
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager:rw
+
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.listen-address=:9093'
+      - '--log.level=info'
+
+    networks:
+      - agentos-backend
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.125'
+          memory: 64M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
   # Redis 内存缓存（IPC 快速通道 + 权限缓存 + 会话存储）
   # 用途: 高速键值存储、发布订阅、分布式锁
   # 版本: Redis 7 Alpine（最新稳定版）
@@ -616,6 +661,9 @@ volumes:
   # ---------------------------------------------------------------------------
   prometheus-data:
     name: agentos_prometheus_tsdb         # Prometheus TSDB 时序数据
+    driver: local
+  alertmanager-data:
+    name: agentos_alertmanager_data       # AlertManager 告警状态数据
     driver: local
   grafana-data:
     name: agentos_grafana_data            # Grafana 仪表盘/用户配置
