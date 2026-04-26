@@ -1,0 +1,34 @@
+# =============================================================================
+# Market Daemon 配置文件
+# 版本: 3.0.0
+# 用途: 市场服务运行参数 (服务注册、发现、计费)
+# =============================================================================
+
+server:
+  tcp_port: ${MARKET_TCP_PORT:-8082}
+  tcp_host: ${MARKET_TCP_HOST:-0.0.0.0}
+  max_connections: 100
+  request_timeout_sec: 30
+
+market:
+  registry_path: /var/lib/agentos/market
+  auto_discover: true
+  health_check_interval: 30
+  stale_threshold_sec: 300
+
+categories:
+  - llm
+  - tools
+  - agents
+  - data
+  - integrations
+
+pricing:
+  default_model: token
+  currency: CNY
+  tax_rate: 0.06
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: json
+  output: stdout

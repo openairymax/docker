@@ -1,0 +1,28 @@
+# =============================================================================
+# Scheduler Daemon 配置文件
+# 版本: 3.0.0
+# 用途: 调度器服务运行参数 (任务队列、优先级、重试)
+# =============================================================================
+
+server:
+  tcp_port: ${SCHED_TCP_PORT:-8083}
+  tcp_host: ${SCHED_TCP_HOST:-0.0.0.0}
+  max_connections: 100
+  request_timeout_sec: 60
+
+scheduler:
+  queue_type: redis
+  max_queue_size: 10000
+  workers: 4
+  worker_timeout_sec: 300
+
+retry:
+  max_attempts: 3
+  backoff_multiplier: 2
+  initial_delay_sec: 1
+  max_delay_sec: 60
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: json
+  output: stdout

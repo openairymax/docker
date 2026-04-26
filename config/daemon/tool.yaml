@@ -1,0 +1,41 @@
+# =============================================================================
+# Tool Daemon 配置文件
+# 版本: 3.0.0
+# 用途: 工具服务运行参数 (沙箱、权限、工具集)
+# =============================================================================
+
+server:
+  tcp_port: ${TOOL_TCP_PORT:-8081}
+  tcp_host: ${TOOL_TCP_HOST:-0.0.0.0}
+  max_connections: 200
+  request_timeout_sec: 60
+
+sandbox:
+  enabled: true
+  timeout_sec: 30
+  memory_limit_mb: 512
+  cpu_limit: 2
+  network_access: false
+  allowed_paths:
+    - /tmp
+    - /var/lib/agentos/tool/cache
+
+tools:
+  enabled:
+    - code_interpreter
+    - file_reader
+    - shell_command
+    - web_search
+  disabled:
+    - system_modify
+    - network_scan
+
+cache:
+  enabled: true
+  max_size: 500
+  ttl_sec: 1800
+
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: json
+  output: stdout
