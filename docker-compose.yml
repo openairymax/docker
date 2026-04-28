@@ -146,7 +146,7 @@ services:
   #
   # 📌 关键说明:
   # - 所有外部请求应通过 Gateway 访问 Kernel（不直接暴露 18080）
-  # - 支持 Python SDK v3.0.0 默认连接 http://localhost:18789
+  # - 支持 Python SDK v0.0.4 默认连接 http://localhost:18789
   # - 三协议支持：HTTP REST、WebSocket 实时通信、stdio 管道
   # ===========================================================================
   gateway:

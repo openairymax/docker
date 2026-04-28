@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-04-23
+## [0.0.4] - 2026-04-23
 
 ### Added
 
@@ -57,8 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **README.md** - Updated to v3.0.0 with comprehensive documentation
-- **Alert Rules** - Version bumped to 3.0.0 with enhanced thresholds
+- **README.md** - Updated to v0.0.4 with comprehensive documentation
+- **Alert Rules** - Version bumped to 0.0.4 with enhanced thresholds
 
 ### Security
 
