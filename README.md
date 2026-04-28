@@ -5,6 +5,18 @@
   <em>基于 CIS Docker Benchmark 合规 | 支持多环境部署 | 内置 CI/CD</em>
 </p>
 
+<p align="center">
+  <a href="https://atomgit.com/openairymax/docker">
+    <img src="https://badges.atomgit.com/openairymax/docker/stargazers.svg" alt="AtomGit Stars">
+  </a>
+  <a href="https://atomgit.com/openairymax/docker">
+    <img src="https://img.shields.io/badge/platform-AtomGit-blue?logo=git" alt="Platform">
+  </a>
+  <a href="https://atomgit.com/openairymax/docker/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License">
+  </a>
+</p>
+
 ---
 
 ## 📖 目录
