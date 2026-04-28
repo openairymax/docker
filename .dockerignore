@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentOS Docker Ignore 文件
-# 版本: 1.0.0
+# 版本: 3.0.0
 # 用途: 排除不需要包含在 Docker 镜像中的文件和目录
 # =============================================================================
 
@@ -31,7 +31,6 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
 parts/
@@ -42,6 +41,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.ruff_cache/
 
 # 虚拟环境
 .venv/
@@ -67,14 +67,12 @@ htmlcov/
 .tox/
 .nox/
 .mypy_cache/
-.ruff_cache/
 
 # 构建产物
 build/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
-Makefile
 *.o
 *.a
 *.so
@@ -96,12 +94,13 @@ logs/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 config/local.yaml
 config/production.yaml
 **/secrets.yaml
 **/*.key
 **/*.pem
-**/*.crt (除非是公开证书)
 
 # 文档和示例（减少镜像大小）
 docs/
@@ -137,6 +136,18 @@ gmon.out
 docker-compose.override.yml
 docker-compose.*.yml.local
 
-# 监控和调试工具
-*.perf
-*.trace
+# CI/CD 文件
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+.travis.yml
+
+# 安全扫描报告
+security-reports/
+trivy-results.*
+
+# 备份文件
+backups/
+*.tar.gz
+*.sql.gz
+*.rdb

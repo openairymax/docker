@@ -1,0 +1,63 @@
+# =============================================================================
+# AgentOS Docker 安全扫描配置 (Trivy)
+# 版本: 0.0.4
+# =============================================================================
+
+# 扫描严重级别
+severity: CRITICAL,HIGH
+
+# 忽略未修复的漏洞
+ignore-unfixed: true
+
+# 扫描类型
+scan-type: fs, image
+
+# 输出格式
+format: table, json, sarif
+
+# 白名单 - 已知但可接受的 CVE
+# 格式: CVE-ID | 软件包名 | 版本范围
+allowlist:
+  # OpenSSL 兼容性问题（需要与上游协调升级）
+  - CVE-2023-3817: openssl > 0
+  # glibc 已知问题（等待基础镜像更新）
+  - CVE-2023-4911: glibc > 0
+
+# 忽略的文件/目录
+skip-dirs:
+  - .git
+  - node_modules
+  - vendor
+  - __pycache__
+  - .venv
+  - build
+
+# 忽略的文件
+skip-files:
+  - '*.md'
+  - '*.txt'
+  - '*.log'
+  - '.env*'
+
+# 自定义检查项
+checks:
+  # Dockerfile 最佳实践
+  dockerfile:
+    - no-root-user
+    - no-latest-tag
+    - healthcheck-present
+    - copy-instead-of-add
+    - no-apt-get-upgrade
+    - use-copy-with-multiple-sources
+
+  # 镜像安全
+  image:
+    - exposed-ports-minimized
+    - no-secret-in-env
+    - read-only-root-fs
+    - no-privileged-port
+
+# 报告输出
+output:
+  path: ./security-reports/
+  format: all
