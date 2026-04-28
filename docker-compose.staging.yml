@@ -1,0 +1,427 @@
+# =============================================================================
+# AgentOS Docker Compose - 预发布环境 (Staging)
+# 版本: 0.0.4 (Staging Environment)
+# 最后更新：2026-04-23
+#
+# 🎯 Staging 环境设计原则:
+# 🔍 与生产环境 1:1 复刻 (相同的安全加固和资源限制)
+# 🧪 用于预发布验证、压力测试、回归测试
+# 📊 启用完整监控栈 (Prometheus + Grafana + AlertManager)
+# 🔒 使用生产级安全配置
+#
+# 📋 使用方法:
+#   # 1️⃣ 创建 staging 环境变量:
+#      cp .env.staging.example .env.staging
+#      vim .env.staging
+#
+#   # 2️⃣ 启动 staging 环境:
+#      docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#
+#   # 3️⃣ 运行集成测试:
+#      docker compose -f docker-compose.staging.yml --env-file .env.staging exec gateway pytest tests/integration/
+#
+#   # 4️⃣ 查看监控面板:
+#      open http://localhost:3000 (Grafana)
+#
+# ⚠️ 注意事项:
+# - Staging 环境默认暴露所有端口用于测试
+# - 数据库使用独立卷，与生产隔离
+# - 建议在 CI/CD Pipeline 中自动部署和销毁
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # 内核服务 (Kernel) - Staging 模式
+  # ===========================================================================
+  kernel:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.kernel
+      target: runtime
+      args:
+        BUILD_TYPE: Release
+        ENABLE_TESTS: OFF
+    image: spharx/agentos-kernel:${AGENTOS_VERSION:-0.0.4}-staging
+    container_name: agentos-kernel-staging
+    hostname: agentos-kernel
+    restart: unless-stopped
+
+    ports:
+      - "${KERNEL_IPC_PORT:-18080}:18080"
+      - "${KERNEL_METRICS_PORT:-9090}:9090"
+
+    volumes:
+      - ./config:/app/config:ro
+      - heapstore-staging-data:/var/lib/agentos/data:rw
+      - heapstore-staging-logs:/var/lib/agentos/logs:rw
+      - heapstore-staging-registry:/var/lib/agentos/registry:rw
+      - heapstore-staging-traces:/var/lib/agentos/traces:rw
+      - heapstore-staging-ipc:/var/lib/agentos/ipc:rw
+      - heapstore-staging-memory:/var/lib/agentos/memory:rw
+
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - AGENTOS_CUPOLAS_ENABLED=true
+      - AGENTOS_PERMISSION_MODE=strict
+      - AGENTOS_SANITIZER_MODE=strict
+      - AGENTOS_AUDIT_ENABLED=true
+      - HEAPSTORE_ROOT_PATH=/var/lib/agentos/data
+      - HEAPSTORE_MAX_LOG_SIZE_MB=200
+      - HEAPSTORE_LOG_RETENTION_DAYS=14
+      - HEAPSTORE_TRACE_RETENTION_DAYS=7
+      - HEAPSTORE_AUTO_CLEANUP=true
+      - HEAPSTORE_CIRCUIT_THRESHOLD=5
+      - HEAPSTORE_CIRCUIT_TIMEOUT_SEC=30
+      - TZ=${TZ:-Asia/Shanghai}
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+
+    networks:
+      - agentos-backend-staging
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18080/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # Gateway 网关服务 - Staging 模式
+  # ===========================================================================
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.daemon
+      target: gateway
+    image: spharx/agentos-gateway:${AGENTOS_VERSION:-0.0.4}-staging
+    container_name: agentos-gateway-staging
+    hostname: agentos-gateway
+    restart: unless-stopped
+
+    ports:
+      - "${GATEWAY_PORT:-18789}:18789"
+      - "${GATEWAY_ADMIN_PORT:-18790}:18790"
+
+    volumes:
+      - ./config/gateway.yaml:/app/config/gateway.yaml:ro
+
+    environment:
+      GATEWAY_BIND_ADDRESS: 0.0.0.0
+      GATEWAY_PORT: 18789
+      GATEWAY_ADMIN_PORT: 18790
+      GATEWAY_UPSTREAM_URL: http://kernel:18080
+      GATEWAY_PROTOCOLS: http,websocket,stdio
+      GATEWAY_GLOBAL_QPS: ${GATEWAY_GLOBAL_QPS:-10000}
+      GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-200}
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET:-staging_jwt_secret_2024_change_me}
+      GATEWAY_JWT_ISSUER: agentos-gateway-staging
+      TOKEN_EXPIRY_HOURS: ${TOKEN_EXPIRY_HOURS:-4}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-2}
+      TZ: ${TZ:-Asia/Shanghai}
+      LANG: C.UTF-8
+
+    networks:
+      - agentos-backend-staging
+      - agentos-frontend-staging
+
+    depends_on:
+      kernel:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # PostgreSQL - Staging
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: agentos-postgres-staging
+    hostname: agentos-postgres
+    restart: unless-stopped
+
+    ports:
+      - "15432:5432"
+
+    volumes:
+      - postgres-staging-data:/var/lib/postgresql/data:rw
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agentos_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-agentos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-staging_password_2024}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+
+    networks:
+      - agentos-backend-staging
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentos} -d ${POSTGRES_DB:-agentos_staging}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    command:
+      - postgres
+      - -c, max_connections=${PG_MAX_CONNECTIONS:-100}
+      - -c, shared_buffers=${PG_SHARED_BUFFERS:-128MB}
+      - -c, effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-512MB}
+      - -c, work_mem=${PG_WORK_MEM:-4MB}
+      - -c, maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-32MB}
+      - -c, wal_level=replica
+      - -c, log_min_duration_statement=${PG_SLOW_QUERY_MS:-500}
+      - -c, log_statement=all
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # Redis - Staging
+  # ===========================================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: agentos-redis-staging
+    hostname: agentos-redis
+    restart: unless-stopped
+
+    ports:
+      - "16379:6379"
+
+    volumes:
+      - redis-staging-data:/data:rw
+
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-staging_redis_2024}
+      --save ""
+      --loglevel notice
+
+    networks:
+      - agentos-backend-staging
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-staging_redis_2024}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.125'
+          memory: 64M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # Prometheus 监控系统 - Staging (始终启用)
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: agentos-prometheus-staging
+    hostname: agentos-prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9091:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - prometheus-staging-data:/prometheus:rw
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--tsdb.path=/prometheus'
+      - '--tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+    networks:
+      - agentos-backend-staging
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.125'
+          memory: 128M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # Grafana 可视化平台 - Staging
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: agentos-grafana-staging
+    hostname: agentos-grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_staging_2024}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-piechart-panel"
+      GF_LOG_LEVEL: info
+
+    volumes:
+      - grafana-staging-data:/var/lib/grafana:rw
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    networks:
+      - agentos-frontend-staging
+
+    depends_on:
+      - prometheus
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.0625'
+          memory: 64M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+        tag: "{{.Name}}"
+
+networks:
+  agentos-backend-staging:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+
+  agentos-frontend-staging:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  heapstore-staging-data:
+    name: agentos_staging_heapstore_data
+    driver: local
+  heapstore-staging-logs:
+    name: agentos_staging_heapstore_logs
+    driver: local
+  heapstore-staging-registry:
+    name: agentos_staging_heapstore_registry
+    driver: local
+  heapstore-staging-traces:
+    name: agentos_staging_heapstore_traces
+    driver: local
+  heapstore-staging-ipc:
+    name: agentos_staging_heapstore_ipc
+    driver: local
+  heapstore-staging-memory:
+    name: agentos_staging_heapstore_memory
+    driver: local
+  postgres-staging-data:
+    name: agentos_staging_postgres_data
+    driver: local
+  redis-staging-data:
+    name: agentos_staging_redis_data
+    driver: local
+  prometheus-staging-data:
+    name: agentos_staging_prometheus_tsdb
+    driver: local
+  grafana-staging-data:
+    name: agentos_staging_grafana_data
+    driver: local

@@ -34,13 +34,12 @@ global:
     environment: '${ENVIRONMENT:-production}'
     cluster: 'agentos-prod'
 
-# 告警管理器配置 (AlertManager 集成，可选)
+# 告警管理器配置 (AlertManager 集成)
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: []
-          # 取消注释以启用 AlertManager:
-          # - 'alertmanager:9093'
+        - targets:
+          - 'alertmanager:9093'
         timeout: 10s
 
 # 告警规则文件路径 (相对于 Prometheus 配置目录)

@@ -146,7 +146,7 @@ services:
   #
   # 📌 关键说明:
   # - 所有外部请求应通过 Gateway 访问 Kernel（不直接暴露 18080）
-  # - 支持 Python SDK v3.0.0 默认连接 http://localhost:18789
+  # - 支持 Python SDK v0.0.4 默认连接 http://localhost:18789
   # - 三协议支持：HTTP REST、WebSocket 实时通信、stdio 管道
   # ===========================================================================
   gateway:
@@ -286,6 +286,51 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # AlertManager (告警路由和通知)
+  # 用途: 接收 Prometheus 告警、路由到不同接收器 (Slack/Email/PagerDuty)
+  # 启动方式: docker compose --profile monitoring up -d
+  # ===========================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: agentos-alertmanager-dev
+    hostname: agentos-alertmanager
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    ports:
+      - "9093:9093"
+
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager:rw
+
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.listen-address=:9093'
+      - '--log.level=info'
+
+    networks:
+      - agentos-backend
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.125'
+          memory: 64M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
         tag: "{{.Name}}"
 
   # ===========================================================================
@@ -616,6 +661,9 @@ volumes:
   # ---------------------------------------------------------------------------
   prometheus-data:
     name: agentos_prometheus_tsdb         # Prometheus TSDB 时序数据
+    driver: local
+  alertmanager-data:
+    name: agentos_alertmanager_data       # AlertManager 告警状态数据
     driver: local
   grafana-data:
     name: agentos_grafana_data            # Grafana 仪表盘/用户配置

@@ -1,0 +1,8 @@
+{
+  "tag_name": "v0.0.4",
+  "target_commitish": "release/v0.0.4",
+  "name": "v0.0.4 - Enterprise-Grade Docker Module",
+  "body": "## Docker Module v0.0.4\n\n### New Features\n- Complete microservices orchestration (Kernel, Gateway, LLM, Tool, Market, Scheduler, Monitor)\n- Multi-target Dockerfile for efficient builds\n- Production-grade security hardening (cap_drop, no-new-privileges, seccomp)\n- Comprehensive monitoring (Prometheus + AlertManager + Grafana)\n- Service profiles for flexible deployment\n- Network isolation (frontend/backend separation)\n- Database initialization scripts\n\n### Services\n- **Kernel**: AgentOS core engine (port 18080, metrics 9090)\n- **Gateway**: API Gateway with JWT auth (port 18789)\n- **LLM Daemon**: Multi-provider LLM integration (port 8080)\n- **Tool Daemon**: Sandboxed tool execution (port 8081)\n- **Market Daemon**: Agent marketplace registry (port 8082)\n- **Scheduler Daemon**: Task queue and retry logic (port 8083)\n- **Monitor Daemon**: Metrics collection and alerts (port 9090)\n\n### Quick Start\n```bash\n# Development\nmake dev\n\n# Production\nmake prod\n\n# Monitoring stack\nmake monitoring\n```\n\n### Documentation\nSee README.md for full deployment guide.",
+  "draft": false,
+  "prerelease": false
+}
