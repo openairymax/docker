@@ -1,31 +1,34 @@
-# AgentOS Docker 部署方案 - 生产级容器化架构
+<div align="center">
 
-<p align="center">
-  <strong>版本: 0.0.4 | 最后更新: 2026-04-23</strong><br>
-  <em>基于 CIS Docker Benchmark 合规 | 支持多环境部署 | 内置 CI/CD</em>
-</p>
+# AgentOS Docker 部署
 
-<p align="center">
-  <a href="https://atomgit.com/openairymax/docker">
-    <img src="https://atomgit.com/openairymax/docker/star/badge.svg" alt="AtomGit Stars">
-  </a>
-  <a href="https://atomgit.com/openairymax/docker">
-    <img src="https://img.shields.io/badge/platform-AtomGit-blue?logo=git" alt="Platform">
-  </a>
-  <a href="https://atomgit.com/openairymax/docker/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License">
-  </a>
-</p>
+Powered by OpenAirymax
 
-<p align="center">
-  <strong>核心仓库</strong><br>
-  <a href="https://atomgit.com/openairymax/agentos">AgentOS 核心源码</a> · 
-  <a href="https://atomgit.com/openairymax/docker">Docker 部署方案</a> · 
-  <a href="https://atomgit.com/openairymax/desktop">Desktop 桌面应用</a> · 
-  <a href="https://atomgit.com/openairymax/docs">Docs 文档中心</a>
-</p>
+> 基于 CIS Docker Benchmark 合规的生产级容器化架构
 
----
+中文 | [English](README.md)
+
+[![AtomGit](https://atomgit.com/openairymax/docker/star/badge.svg)](https://atomgit.com/openairymax/docker)
+
+[![Version](https://img.shields.io/badge/version-0.0.4-5a6b7e)](https://atomgit.com/openairymax/docker)
+[![License](https://img.shields.io/badge/license-Proprietary-4a90d9)](https://atomgit.com/openairymax/docker/blob/main/LICENSE)
+
+[![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker\&logoColor=white)](https://www.docker.com)
+[![Compose](https://img.shields.io/badge/Docker%20Compose-2.20+-2496ED?logo=docker\&logoColor=white)](https://docs.docker.com/compose/)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu\&logoColor=white)](https://ubuntu.com)
+
+</div>
+
+***
+
+## 相关仓库
+
+| 仓库                | 链接                                                                         |
+| ----------------- | -------------------------------------------------------------------------- |
+| AgentOS 核心源码      | [atomgit.com/openairymax/agentos](https://atomgit.com/openairymax/agentos) |
+| 文档模块              | [atomgit.com/openairymax/docs](https://atomgit.com/openairymax/docs)       |
+| **Docker 部署（当前）** | [atomgit.com/openairymax/docker](https://atomgit.com/openairymax/docker)   |
+| 桌面客户端             | [atomgit.com/openairymax/desktop](https://atomgit.com/openairymax/desktop) |
 
 ## 📖 目录
 
@@ -41,8 +44,6 @@
 - [10. 故障排查](#10-故障排查)
 - [11. 附录](#11-附录)
 
----
-
 ## 1. 项目概述
 
 ### 1.1 什么是 AgentOS Docker？
@@ -51,28 +52,26 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 
 ### 核心特性
 
-| 特性类别 | 具体能力 | 实现方式 |
-|---------|---------|---------|
-| 🔒 **安全加固** | CIS Benchmark 合规、非 root 用户、seccomp、只读文件系统 | Dockerfile 安全配置 + Compose security_opt |
-| 🛡️ **高可用** | 多实例部署、健康检查、自动重启、优雅降级 | restart_policy + healthcheck + replicas |
-| 📊 **可观测性** | Prometheus 指标采集 + Grafana 可视化 + 结构化日志 | monitoring/ 目录 + JSON 日志驱动 |
-| ⚡ **性能优化** | 连接池调优、内存管理、缓存策略、资源限制 | deploy.resources + 数据库参数调优 |
-| 🔄 **数据安全** | ACID 事务保证、AOF/RDB 持久化、自动化备份 | PostgreSQL WAL + Redis AOF + backup.sh 脚本 |
-| 🚀 **快速部署** | 一键启动、环境变量模板、多目标构建 | docker-compose.yml + .env.production.example |
+| 特性类别        | 具体能力                                      | 实现方式                                         |
+| ----------- | ----------------------------------------- | -------------------------------------------- |
+| 🔒 **安全加固** | CIS Benchmark 合规、非 root 用户、seccomp、只读文件系统 | Dockerfile 安全配置 + Compose security\_opt      |
+| 🛡️ **高可用** | 多实例部署、健康检查、自动重启、优雅降级                      | restart\_policy + healthcheck + replicas     |
+| 📊 **可观测性** | Prometheus 指标采集 + Grafana 可视化 + 结构化日志     | monitoring/ 目录 + JSON 日志驱动                   |
+| ⚡ **性能优化**  | 连接池调优、内存管理、缓存策略、资源限制                      | deploy.resources + 数据库参数调优                   |
+| 🔄 **数据安全** | ACID 事务保证、AOF/RDB 持久化、自动化备份               | PostgreSQL WAL + Redis AOF + backup.sh 脚本    |
+| 🚀 **快速部署** | 一键启动、环境变量模板、多目标构建                         | docker-compose.yml + .env.production.example |
 
 ### 关键版本信息
 
-| 组件 | 版本 | 端口 | 说明 |
-|------|------|------|------|
-| AgentOS Kernel | v2.0.0 | 18080 (IPC) / 9090 (Metrics) | 微内核核心 |
-| AgentOS Gateway | v2.0.0 | 18789 (API) / 18790 (Admin) | 三协议网关 |
-| Python SDK | v0.0.4 | 默认连接 18789 | `agentos` Python 包 |
-| PostgreSQL | 15-alpine | 5432 (内网) | 关系型数据库 |
-| Redis | 7-alpine | 6379 (内网) | 内存缓存 |
-| Prometheus | v2.45.0 | 9091 (偏移) | 监控引擎 |
-| Grafana | 10.2.0 | 3000 | 可视化平台 |
-
----
+| 组件              | 版本        | 端口                           | 说明                 |
+| --------------- | --------- | ---------------------------- | ------------------ |
+| AgentOS Kernel  | v2.0.0    | 18080 (IPC) / 9090 (Metrics) | 微内核核心              |
+| AgentOS Gateway | v2.0.0    | 18789 (API) / 18790 (Admin)  | 三协议网关              |
+| Python SDK      | v0.0.4    | 默认连接 18789                   | `agentos` Python 包 |
+| PostgreSQL      | 15-alpine | 5432 (内网)                    | 关系型数据库             |
+| Redis           | 7-alpine  | 6379 (内网)                    | 内存缓存               |
+| Prometheus      | v2.45.0   | 9091 (偏移)                    | 监控引擎               |
+| Grafana         | 10.2.0    | 3000                         | 可视化平台              |
 
 ## 2. 系统架构
 
@@ -82,17 +81,17 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 
 ```
                          ┌──────────────────────────────────┐
-                         │        开发者机器 (Developer)     │
+                         │        开发者机器 (Developer)      │
                          └─────────────┬────────────────────┘
                                        │ HTTP/WS :18789
                                        ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        agentos-frontend (172.29.0.0/16)              │
-│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────┐ │
-│  │   OpenLab   │    │   Gateway    │    │       Grafana          │ │
-│  │  :5173/:8000│◄──►│  :18789/:18790│◄──►│         :3000          │ │
-│  │  [optional] │    │  (统一入口)   │    │    [monitoring]        │ │
-│  └─────────────┘    └──────┬───────┘    └─────────────────────────┘ │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────┐  │
+│  │   OpenLab   │    │   Gateway    │    │       Grafana           │  │
+│  │  :5173/:8000│◄──►│ :18789/:18790│◄──►│         :3000           │  │
+│  │  [optional] │    │  (统一入口)   │    │    [monitoring]         │  │
+│  └─────────────┘    └──────┬───────┘    └─────────────────────────┘  │
 │                             │                                        │
 └─────────────────────────────┼────────────────────────────────────────┘
                               │
@@ -101,8 +100,8 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 │                        agentos-backend (172.28.0.0/16)               │
 │  ┌─────────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐ │
 │  │   Kernel    │    │PostgreSQL│    │  Redis   │    │  Prometheus  │ │
-│  │:18080/:9090 │◄──►│  :5432   │◄──►│  :6379   │◄──►│    :9091      │ │
-│  │(微内核核心) │    │ (ACID)   │    │ (LRU)    │    │[monitoring]  │ │
+│  │:18080/:9090 │◄──►│  :5432   │◄──►│  :6379   │◄──►│    :9091     │ │
+│  │(微内核核心)   │    │ (ACID)   │    │ (LRU)    │    │[monitoring]  │ │
 │  └─────────────┘    └──────────┘    └──────────┘    └──────────────┘ │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -119,14 +118,14 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
               └──────────┬──────────┘
                          │ HTTP :18789
                          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                   DMZ / Frontend Network (172.31.0.0/16)            │
-│                                                                     │
-│  ┌─────────────────────┐    ┌──────────────────────────────────┐    │
-│  │   Gateway Cluster    │    │        Grafana                  │    │
-│  │   :18789 (LB)        │◄──►│        :3000 (VPN Only)         │    │
-│  │   [N instances]      │    │        [monitoring profile]     │    │
-│  └──────────┬──────────┘    └──────────────────────────────────┘    │
+┌────────────────────────────────────────────────────────────────────┐
+│                   DMZ / Frontend Network (172.31.0.0/16)           │
+│                                                                    │
+│  ┌─────────────────────┐    ┌──────────────────────────────────┐   │
+│  │   Gateway Cluster   │    │        Grafana                   │   │
+│  │   :18789 (LB)       │◄──►│        :3000 (VPN Only)          │   │
+│  │   [N instances]     │    │        [monitoring profile]      │   │
+│  └──────────┬──────────┘    └──────────────────────────────────┘   │
 │             │                                                      │
 └─────────────┼──────────────────────────────────────────────────────┘
               │
@@ -135,38 +134,38 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 │                   Internal / Backend Network (172.30.0.0/16)        │
 │                                                                     │
 │  ┌──────────────┐    ┌────────────┐    ┌────────────────────────┐   │
-│  │Kernel Cluster │    │ PostgreSQL │    │ Redis Cluster          │   │
-│  │:18080 (内部)  │◄──►│  HA (主从)  │◄──►│ Sentinel (高可用)      │   │
-│  │[M instances] │    │  :5432     │    │ :6379                 │   │
+│  │Kernel Cluster│    │ PostgreSQL │    │ Redis Cluster          │   │
+│  │:18080 (内部) │◄──►│  HA (主从)  │◄──►│ Sentinel (高可用)       │   │
+│  │[M instances] │    │  :5432     │    │ :6379                  │   │
 │  └──────────────┘    └────────────┘    └────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 端口规划表
 
-| 端口 | 服务 | 协议 | 环境 | 用途 | 安全级别 |
-|------|------|------|------|------|---------|
-| **18789** | Gateway | HTTP/WS | Dev + Prod | **统一 API 入口** | 公开 |
-| **18790** | Gateway Admin | HTTP | Dev + Prod | 网关管理 API | 受限 |
-| 3000 | Grafana | HTTP | Dev + Prod | 监控可视化 | 受限 |
-| **18080** | Kernel IPC | HTTP | 内网 | 内核 API | 内部 |
-| 5432 | PostgreSQL | TCP | 内网 | 数据库连接 | 内部 |
-| 6379 | Redis | TCP | 内网 | 缓存连接 | 内部 |
+| 端口        | 服务            | 协议      | 环境         | 用途            | 安全级别 |
+| --------- | ------------- | ------- | ---------- | ------------- | ---- |
+| **18789** | Gateway       | HTTP/WS | Dev + Prod | **统一 API 入口** | 公开   |
+| **18790** | Gateway Admin | HTTP    | Dev + Prod | 网关管理 API      | 受限   |
+| 3000      | Grafana       | HTTP    | Dev + Prod | 监控可视化         | 受限   |
+| **18080** | Kernel IPC    | HTTP    | 内网         | 内核 API        | 内部   |
+| 5432      | PostgreSQL    | TCP     | 内网         | 数据库连接         | 内部   |
+| 6379      | Redis         | TCP     | 内网         | 缓存连接          | 内部   |
 
----
+
 
 ## 3. 前置要求
 
 ### 3.1 系统要求
 
-| 组件 | 最低配置 | 推荐配置 (开发) | 推荐配置 (生产) |
-|------|---------|----------------|----------------|
-| **操作系统** | Ubuntu 20.04+ | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS (hardened) |
-| **CPU** | 4 核心 | 8 核心 | 16+ 核心 |
-| **内存** | 8 GB RAM | 16 GB RAM | 32+ GB RAM |
-| **磁盘** | 50 GB SSD | 100 GB NVMe SSD | 500GB+ SSD |
-| **Docker** | ≥ 20.10.0 | ≥ 24.0.0 | ≥ 24.0.0 |
-| **Docker Compose** | ≥ 2.0.0 | ≥ 2.20.0 | ≥ 2.20.0 |
+| 组件                 | 最低配置          | 推荐配置 (开发)        | 推荐配置 (生产)                   |
+| ------------------ | ------------- | ---------------- | --------------------------- |
+| **操作系统**           | Ubuntu 20.04+ | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS (hardened) |
+| **CPU**            | 4 核心          | 8 核心             | 16+ 核心                      |
+| **内存**             | 8 GB RAM      | 16 GB RAM        | 32+ GB RAM                  |
+| **磁盘**             | 50 GB SSD     | 100 GB NVMe SSD  | 500GB+ SSD                  |
+| **Docker**         | ≥ 20.10.0     | ≥ 24.0.0         | ≥ 24.0.0                    |
+| **Docker Compose** | ≥ 2.0.0       | ≥ 2.20.0         | ≥ 2.20.0                    |
 
 ### 3.2 安装依赖
 
@@ -175,7 +174,7 @@ sudo apt-get update && sudo apt-get install -y \
     docker.io docker-compose-v2 git curl jq openssl make
 ```
 
----
+
 
 ## 4. 快速开始
 
@@ -222,74 +221,72 @@ docker compose -f docker/docker-compose.prod.yml \
 ./docker/scripts/healthcheck.sh --env prod --json
 ```
 
----
 
 ## 5. 服务详解
 
 ### 5.1 Kernel 内核服务
 
-**镜像**: `spharx/agentos-kernel:2.0.0`  
+**镜像**: `spharx/agentos-kernel:2.0.0`\
 **端口**: 18080 (IPC API) + 9090 (Prometheus Metrics)
 
 Kernel 是 AgentOS 的**微内核核心**，实现四大原子机制：
 
-| 机制 | 功能描述 |
-|------|---------|
-| **IPC** | 进程间通信，统一 Syscall 接口 |
-| **Memory** | 内存分配与回收，虚拟内存管理 |
-| **Task** | 任务调度，优先级队列，时间片轮转 |
-| **Time** | 定时器，时钟同步，超时机制 |
+| 机制         | 功能描述                |
+| ---------- | ------------------- |
+| **IPC**    | 进程间通信，统一 Syscall 接口 |
+| **Memory** | 内存分配与回收，虚拟内存管理      |
+| **Task**   | 任务调度，优先级队列，时间片轮转    |
+| **Time**   | 定时器，时钟同步，超时机制       |
 
 ### 5.2 Gateway 网关服务
 
-**镜像**: `spharx/agentos-gateway:2.0.0`  
+**镜像**: `spharx/agentos-gateway:2.0.0`\
 **端口**: 18789 (API) + 18790 (Admin)
 
 Gateway 是**唯一对外入口**，实现三协议网关：
 
-| 协议 | 端点路径 | 用途 |
-|------|---------|------|
-| **HTTP REST** | `/api/v1/*` | 同步请求-响应 |
-| **WebSocket** | `/ws` | 全双工实时通信 |
-| **stdio** | stdin/stdout | 管道通信 |
+| 协议            | 端点路径         | 用途      |
+| ------------- | ------------ | ------- |
+| **HTTP REST** | `/api/v1/*`  | 同步请求-响应 |
+| **WebSocket** | `/ws`        | 全双工实时通信 |
+| **stdio**     | stdin/stdout | 管道通信    |
 
 ### 5.3 PostgreSQL 数据库
 
-**镜像**: `postgres:15-alpine`  
-**端口**: 5432 (仅内网访问)  
+**镜像**: `postgres:15-alpine`\
+**端口**: 5432 (仅内网访问)\
 **用途**: HeapStore 慢速存储层、事务性数据、复杂查询
 
 ### 5.4 Redis 缓存服务
 
-**镜像**: `redis:7-alpine`  
-**端口**: 6379 (仅内网访问)  
+**镜像**: `redis:7-alpine`\
+**端口**: 6379 (仅内网访问)\
 **用途**: IPC 高速通道、权限缓存、会话存储、Rate Limiting
 
 ### 5.5 Prometheus 监控系统
 
-**镜像**: `prom/prometheus:v2.45.0`  
-**端口**: 9091  
+**镜像**: `prom/prometheus:v2.45.0`\
+**端口**: 9091\
 **启动**: `--profile monitoring`
 
 ### 5.6 Grafana 可视化平台
 
-**镜像**: `grafana/grafana:10.2.0`  
-**端口**: 3000  
+**镜像**: `grafana/grafana:10.2.0`\
+**端口**: 3000\
 **启动**: `--profile monitoring`
 
----
 
 ## 6. 安全最佳实践
 
 ### 6.1 CIS Docker Benchmark 合规
 
-| CIS 编号 | 要求 | 实现方式 | 状态 |
-|---------|------|---------|------|
-| **4.1** | 使用受信任的基础镜像 | ubuntu:22.04 (官方) | ✅ |
-| **5.4** | 使用 rootless 容器 | USER agentos:1000 | ✅ |
-| **5.7** | 配置 seccomp | seccomp-profile.json | ✅ |
-| **5.9** | 只读文件系统 | read_only: true | ✅ |
-| **5.11** | 禁止获取新权限 | no-new-privileges:true | ✅ |
+| CIS 编号   | 要求             | 实现方式                   | 状态 |
+| -------- | -------------- | ---------------------- | -- |
+| **4.1**  | 使用受信任的基础镜像     | ubuntu:22.04 (官方)      | ✅  |
+| **5.4**  | 使用 rootless 容器 | USER agentos:1000      | ✅  |
+| **5.7**  | 配置 seccomp     | seccomp-profile.json   | ✅  |
+| **5.9**  | 只读文件系统         | read\_only: true       | ✅  |
+| **5.11** | 禁止获取新权限        | no-new-privileges:true | ✅  |
 
 ### 6.2 密钥管理策略
 
@@ -304,7 +301,6 @@ JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n=' | head -c 43; echo)
 chmod 600 docker/.env.production
 ```
 
----
 
 ## 7. 运维手册
 
@@ -340,28 +336,26 @@ docker stats
 ./docker/scripts/backup.sh restore <BACKUP_FILE> --env prod
 ```
 
----
 
 ## 8. 监控与告警
 
 ### 8.1 核心指标
 
-| 指标名称 | 服务 | 说明 | 告警阈值 |
-|---------|------|------|---------|
-| `up` | 所有 | 服务存活状态 | == 0 (critical) |
-| `http_request_duration_seconds` | Gateway | 请求延迟分布 | P99 > 2s |
-| `agentos_syscall_duration_seconds` | Kernel | Syscall 执行时间 | P99 > 1s |
-| `pg_stat_activity_count` | PostgreSQL | 活跃连接数 | > 90% |
+| 指标名称                               | 服务         | 说明           | 告警阈值            |
+| ---------------------------------- | ---------- | ------------ | --------------- |
+| `up`                               | 所有         | 服务存活状态       | == 0 (critical) |
+| `http_request_duration_seconds`    | Gateway    | 请求延迟分布       | P99 > 2s        |
+| `agentos_syscall_duration_seconds` | Kernel     | Syscall 执行时间 | P99 > 1s        |
+| `pg_stat_activity_count`           | PostgreSQL | 活跃连接数        | > 90%           |
 
 ### 8.2 告警级别
 
-| 级别 | 响应时间 | 通知渠道 | 影响范围 |
-|------|---------|---------|---------|
+| 级别              | 响应时间   | 通知渠道            | 影响范围 |
+| --------------- | ------ | --------------- | ---- |
 | **Critical** 🔴 | < 5 分钟 | PagerDuty + SMS | 服务宕机 |
-| **Warning** 🟡 | < 4 小时 | Slack + Email | 性能下降 |
-| **Info** 🔵 | 下个工作日 | 仅 Slack | 容量规划 |
+| **Warning** 🟡  | < 4 小时 | Slack + Email   | 性能下降 |
+| **Info** 🔵     | 下个工作日  | 仅 Slack         | 容量规划 |
 
----
 
 ## 9. 扩展指南
 
@@ -385,7 +379,6 @@ kompose convert -f docker/docker-compose.prod.yml -o k8s/
 kubectl apply -f k8s/
 ```
 
----
 
 ## 10. 故障排查
 
@@ -396,6 +389,7 @@ kubectl apply -f k8s/
 **原因**: OOM Killer
 
 **解决方案**:
+
 ```bash
 # 增加 memory limit
 deploy:
@@ -409,12 +403,12 @@ deploy:
 **原因**: Kernel 服务不可达
 
 **排查步骤**:
+
 ```bash
 docker ps | grep kernel
 docker compose exec gateway curl -f http://kernel:18080/api/v1/health
 ```
 
----
 
 ## 11. 附录
 
@@ -433,21 +427,19 @@ docker/
 └── monitoring/                       # 📊 监控栈配置
 ```
 
----
 
 ## 📞 支持与反馈
 
 - **文档问题**: 提交 Issue 到 [AtomGit Issues](https://atomgit.com/openairymax/docker/issues)
-- **安全问题**: 发送邮件至 🔒 security@spharx.cn
-- **运维支持**: 联系 DevOps 团队 ops@spharx.cn
+- **安全问题**: 发送邮件至 🔒 <security@spharx.cn>
+- **运维支持**: 联系 DevOps 团队 <ops@spharx.cn>
 
----
 
 ## 📄 许可证
 
 本项目采用 **Proprietary License** (专有许可证)。详见 [LICENSE](../LICENSE) 文件。
 
----
+***
 
 <p align="center">
   <strong>Made with ❤️ by SPHARX Platform Team</strong><br>

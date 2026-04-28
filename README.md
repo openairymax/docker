@@ -1,29 +1,34 @@
-# AgentOS Docker 部署方案 - 生产级容器化架构
+<div align="center">
 
-<p align="center">
-  <strong>版本: 0.0.4 | 最后更新: 2026-04-23</strong><br>
-  <em>基于 CIS Docker Benchmark 合规 | 支持多环境部署 | 内置 CI/CD</em>
-</p>
+# AgentOS Docker Deployment
 
-<p align="center">
-  <a href="https://atomgit.com/openairymax/docker">
-    <img src="https://atomgit.com/openairymax/docker/star/badge.svg" alt="AtomGit Stars">
-  </a>
-  <a href="https://atomgit.com/openairymax/docker">
-    <img src="https://img.shields.io/badge/platform-AtomGit-blue?logo=git" alt="Platform">
-  </a>
-  <a href="https://atomgit.com/openairymax/docker/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License">
-  </a>
-</p>
+Powered by OpenAirymax
 
-<p align="center">
-  <strong>核心仓库</strong><br>
-  <a href="https://atomgit.com/openairymax/agentos">AgentOS 核心源码</a> · 
-  <a href="https://atomgit.com/openairymax/docker">Docker 部署方案</a> · 
-  <a href="https://atomgit.com/openairymax/desktop">Desktop 桌面应用</a> · 
-  <a href="https://atomgit.com/openairymax/docs">Docs 文档中心</a>
-</p>
+> Production-grade containerized architecture based on CIS Docker Benchmark compliance
+
+[中文](README_zh.md) | English
+
+[![AtomGit](https://atomgit.com/openairymax/docker/star/badge.svg)](https://atomgit.com/openairymax/docker)
+ 
+[![Version](https://img.shields.io/badge/version-0.0.4-5a6b7e)](https://atomgit.com/openairymax/docker)
+[![License](https://img.shields.io/badge/license-Proprietary-4a90d9)](https://atomgit.com/openairymax/docker/blob/main/LICENSE)
+
+[![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
+[![Compose](https://img.shields.io/badge/Docker%20Compose-2.20+-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com)
+
+</div>
+
+---
+
+## Related Repositories
+
+| Repository | Link |
+|------------|------|
+| AgentOS Core Source | [atomgit.com/openairymax/agentos](https://atomgit.com/openairymax/agentos) |
+| Documentation | [atomgit.com/openairymax/docs](https://atomgit.com/openairymax/docs) |
+| **Docker Deployment (Current)** | [atomgit.com/openairymax/docker](https://atomgit.com/openairymax/docker) |
+| Desktop Client | [atomgit.com/openairymax/desktop](https://atomgit.com/openairymax/desktop) |
 
 ---
 
