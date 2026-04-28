@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://atomgit.com/openairymax/docker">
-    <img src="https://badges.atomgit.com/openairymax/docker/stargazers.svg" alt="AtomGit Stars">
+    <img src="https://atomgit.com/openairymax/docker/star/badge.svg" alt="AtomGit Stars">
   </a>
   <a href="https://atomgit.com/openairymax/docker">
     <img src="https://img.shields.io/badge/platform-AtomGit-blue?logo=git" alt="Platform">
@@ -15,6 +15,14 @@
   <a href="https://atomgit.com/openairymax/docker/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License">
   </a>
+</p>
+
+<p align="center">
+  <strong>核心仓库</strong><br>
+  <a href="https://atomgit.com/openairymax/agentos">AgentOS 核心源码</a> · 
+  <a href="https://atomgit.com/openairymax/docker">Docker 部署方案</a> · 
+  <a href="https://atomgit.com/openairymax/desktop">Desktop 桌面应用</a> · 
+  <a href="https://atomgit.com/openairymax/docs">Docs 文档中心</a>
 </p>
 
 ---
