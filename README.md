@@ -1,7 +1,7 @@
 # AgentOS Docker 部署方案 - 生产级容器化架构
 
 <p align="center">
-  <strong>版本: 3.0.0 (Enterprise-Grade) | 最后更新: 2026-04-23</strong><br>
+  <strong>版本: 0.0.4 | 最后更新: 2026-04-23</strong><br>
   <em>基于 CIS Docker Benchmark 合规 | 支持多环境部署 | 内置 CI/CD</em>
 </p>
 
@@ -94,7 +94,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  应用层 (Application)                │
-│   OpenLab Web UI │ Python SDK v3.0.0 │ Go SDK       │
+│   OpenLab Web UI │ Python SDK v0.0.4 │ Go SDK       │
 ├─────────────────────────────────────────────────────┤
 │                  网关层 (Gateway)                     │
 │   HTTP REST │ WebSocket │ stdio (Port: 18789)      │
@@ -117,7 +117,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 |------|------|------|------|
 | AgentOS Kernel | v2.0.0 | 18080 (IPC) / 9090 (Metrics) | 微内核核心 |
 | AgentOS Gateway | v2.0.0 | 18789 (API) / 18790 (Admin) | 三协议网关 |
-| Python SDK | v3.0.0 | 默认连接 18789 | `agentos` Python 包 |
+| Python SDK | v0.0.4 | 默认连接 18789 | `agentos` Python 包 |
 | PostgreSQL | 15-alpine | 5432 (内网) | 关系型数据库 |
 | Redis | 7-alpine | 6379 (内网) | 内存缓存 |
 | Prometheus | v2.45.0 | 9091 (偏移) | 监控引擎 |
@@ -221,7 +221,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 OpenLab (可选)
     │
     ▼
-Gateway (必需) ◄──── 外部客户端 / Python SDK v3.0.0
+Gateway (必需) ◄──── 外部客户端 / Python SDK v0.0.4
     │
     ├──────────────────┐
     ▼                  ▼
@@ -1933,7 +1933,7 @@ docker/
 
 ### 12. 版本更新日志
 
-#### v3.0.0 (2026-04-23) - Enterprise-Grade Major Release
+#### v0.0.4 (2026-04-23) - Release
 
 **🎉 重大更新:**
 
@@ -1981,7 +1981,7 @@ docker/
 
 ##### 📚 文档改进 (Documentation)
 
-- **README.md v3.0.0**: 更新快速开始指南，新增 Make 和脚本用法
+- **README.md v0.0.4**: 更新快速开始指南，新增 Make 和脚本用法
 
 ---
 
@@ -2014,7 +2014,7 @@ docker/
 ##### 🐛 Bug 修复 (Bug Fixes)
 
 - **端口修正**: Kernel IPC 端口从 8080 修正为 **18080** (与源码 syscalls.h 一致)
-- **Gateway 端口**: 统一 API 入口修正为 **18789** (匹配 Python SDK v3.0.0 默认值)
+- **Gateway 端口**: 统一 API 入口修正为 **18789** (匹配 Python SDK v0.0.4 默认值)
 - **健康检查 URL**: 从 `/health` 修正为 `/api/v1/health` (符合 RESTful 规范)
 - **Dockerfile targets**: 更新为新的多阶段构建 target 名称 (runtime/gateway/debug)
 
@@ -2093,5 +2093,5 @@ docker compose -f docker/docker-compose.prod.yml \
 
 <p align="center">
   <strong>Made with ❤️ by SPHARX Platform Team</strong><br>
-  <em>Last Updated: 2026-04-23 | Version: 3.0.0 (Enterprise-Grade)</em>
+  <em>Last Updated: 2026-04-23 | Version: 0.0.4</em>
 </p>

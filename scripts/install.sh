@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # AgentOS Docker 一键安装脚本
-# 版本: 3.0.0
+# 版本: 0.0.4
 # 支持: Linux (Ubuntu/Debian/CentOS), macOS
 # =============================================================================
 
@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # 常量定义
 # -----------------------------------------------------------------------------
-readonly AGENTOS_VERSION="${AGENTOS_VERSION:-3.0.0}"
+readonly AGENTOS_VERSION="${AGENTOS_VERSION:-0.0.4}"
 readonly INSTALL_DIR="${HOME}/.agentos"
 readonly DOCKER_CONFIG_DIR="${HOME}/.docker"
 readonly REPO_URL="https://github.com/spharx/agentos"
