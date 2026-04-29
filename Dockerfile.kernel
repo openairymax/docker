@@ -70,7 +70,7 @@ COPY CMakeLists.txt ./
 COPY Makefile* ./
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
-RUN cmake .. \
+RUN cmake -S ./agentos -B . \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_TESTS=${ENABLE_TESTS} \

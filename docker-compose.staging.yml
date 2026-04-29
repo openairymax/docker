@@ -268,7 +268,7 @@ services:
       - agentos-backend-staging
 
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-staging_redis_2024}", "ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD:-staging_redis_2024} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
