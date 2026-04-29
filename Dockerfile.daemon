@@ -118,12 +118,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制虚拟环境和构建产物
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-COPY --from=builder /build/bin/ /app/bin/ 2>/dev/null || true
-COPY --from=builder /build/lib/ /app/lib/ 2>/dev/null || true
+RUN mkdir -p /app/bin /app/lib
+COPY --from=builder /build/bin/ /app/bin/
+COPY --from=builder /build/lib/ /app/lib/
 
 # 复制 Supervisor 配置
 COPY docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-COPY docker/config/supervisor/conf.d/*.conf /app/supervisor/conf.d/ 2>/dev/null || true
+RUN mkdir -p /app/supervisor/conf.d
 
 # 设置权限
 RUN chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
