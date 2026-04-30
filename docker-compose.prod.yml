@@ -64,13 +64,12 @@ services:
   kernel:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.kernel
-      target: runtime                      # ✅ 使用 runtime target（Release 构建）
+      dockerfile: Docker/Dockerfile.kernel
+      target: runtime
       args:
-        BUILD_TYPE: Release                # 生产使用 Release 模式（无调试符号）
-        ENABLE_TESTS: OFF                  # 生产禁用测试
+        BUILD_TYPE: Release
+        ENABLE_TESTS: OFF
     image: spharx/agentos-kernel:${AGENTOS_VERSION:-2.0.0}
-    container_name: agentos-kernel-prod
     hostname: agentos-kernel
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
@@ -189,10 +188,9 @@ services:
   gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.daemon
-      target: gateway                      # ✅ 使用 gateway target
+      dockerfile: Docker/Dockerfile.daemon
+      target: gateway
     image: spharx/agentos-gateway:${AGENTOS_VERSION:-2.0.0}
-    container_name: agentos-gateway-prod
     hostname: agentos-gateway
     restart: always
 
@@ -478,7 +476,7 @@ services:
   openlab:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.openlab  # ⚠️ 需要创建此文件或替换为实际镜像
+      dockerfile: Docker/Dockerfile.openlab
       target: production                     # 使用 production target
     image: spharx/agentos-openlab:${AGENTOS_VERSION:-2.0.0}
     container_name: agentos-openlab-prod

@@ -19,7 +19,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DOCKER_DIR="$PROJECT_ROOT/docker"
+DOCKER_DIR="$PROJECT_ROOT/Docker"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -115,7 +115,7 @@ start_dev() {
 }
 
 start_staging() {
-    echo -e "${Yellow}[启动] 预发布环境...${NC}"
+    echo -e "${YELLOW}[启动] 预发布环境...${NC}"
     
     cd "$PROJECT_ROOT"
     

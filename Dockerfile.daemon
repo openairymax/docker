@@ -48,8 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制守护进程源码和 Python SDK
-COPY agentos/daemon/ ./agentos/daemon/
-COPY agentos/toolkit/python/ ./agentos/toolkit/python/
+COPY AgentOS/agentos/daemon/ ./agentos/daemon/
+COPY AgentOS/agentos/toolkit/python/ ./agentos/toolkit/python/
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
@@ -123,7 +123,7 @@ COPY --from=builder /build/bin/ /app/bin/
 COPY --from=builder /build/lib/ /app/lib/
 
 # 复制 Supervisor 配置
-COPY docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 RUN mkdir -p /app/supervisor/conf.d
 
 # 设置权限
@@ -159,7 +159,7 @@ CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 FROM runtime AS gateway
 
 # 复制 Gateway 配置
-COPY docker/config/gateway.yaml /app/config/gateway.yaml
+COPY Docker/config/gateway.yaml /app/config/gateway.yaml
 
 # 额外暴露 Gateway 管理端口
 EXPOSE 18789/tcp 18790/tcp

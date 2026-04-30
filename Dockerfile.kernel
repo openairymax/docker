@@ -65,9 +65,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制源代码和构建配置
-COPY agentos/ ./agentos/
-COPY CMakeLists.txt ./
-COPY Makefile* ./
+COPY AgentOS/agentos/ ./agentos/
+COPY AgentOS/CMakeLists.txt ./
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
 RUN cmake -S ./agentos -B . \
@@ -82,6 +81,9 @@ RUN cmake -S ./agentos -B . \
 
 # 并行构建项目（利用所有 CPU 核心）
 RUN cmake --build . --parallel $(nproc)
+
+# 安装构建产物到标准目录
+RUN cmake --install .
 
 # 运行测试套件（仅在显式启用时）
 RUN if [ "${ENABLE_TESTS}" = "ON" ]; then \
@@ -143,11 +145,11 @@ RUN groupadd -r -g 1000 agentos \
     && chmod 700 /app/config /app/data /app/logs /app/run
 
 # 从构建阶段仅复制必要的二进制产物
-COPY --from=builder /build/bin/ /app/bin/
-COPY --from=builder /build/lib/ /app/lib/
+COPY --from=builder /usr/local/bin/ /app/bin/
+COPY --from=builder /usr/local/lib/ /app/lib/
 
 # 复制生产环境配置模板（只读挂载点）
-COPY docker/config/ /app/config/
+COPY Docker/config/ /app/config/
 
 # 设置正确的文件权限
 RUN chown -R agentos:agentos /app/bin /app/lib /app/config \
