@@ -43,7 +43,7 @@ services:
   kernel:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.kernel
+      dockerfile: Docker/Dockerfile.kernel
       target: runtime                    # ✅ 使用 runtime target（非 development）
       args:
         BUILD_TYPE: Debug                 # 开发模式启用调试符号
@@ -61,11 +61,11 @@ services:
     # 卷挂载（开发环境支持源码热重载）
     volumes:
       # 源码挂载（只读，用于开发时实时查看源码）
-      - ../agentos:/app/source:ro
+      - ../AgentOS/agentos:/app/source:ro
       # 构建产物持久化（避免重复编译）
       - kernel-build-cache:/app/build:rw
       # 配置文件（从 config 目录挂载）
-      - ../config:/app/config:ro
+      - ../Docker/config:/app/config:ro
       # HeapStore 六大数据分区（基于 heapstore.h path_type_t 定义）
       - heapstore-kernel-data:/var/lib/agentos/data:rw       # PATH_KERNEL
       - heapstore-logs:/var/lib/agentos/logs:rw              # PATH_LOGS
@@ -152,7 +152,7 @@ services:
   gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.daemon
+      dockerfile: Docker/Dockerfile.daemon
       target: gateway                      # ✅ 使用 gateway target（含 HTTP/WS/stdio）
     image: spharx/agentos-gateway:dev-latest
     container_name: agentos-gateway-dev
@@ -167,7 +167,7 @@ services:
     # 卷挂载
     volumes:
       # Gateway 源码（只读，用于开发调试）
-      - ../agentos/gateway:/app/gateway:ro
+      - ../AgentOS/agentos/gateway:/app/gateway:ro
       # Gateway 配置文件（YAML 格式，含 CORS、限流、JWT 等配置）
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
 
@@ -401,7 +401,7 @@ services:
   openlab:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.openlab  # ⚠️ 需要创建此文件或替换为实际镜像
+      dockerfile: Docker/Dockerfile.openlab  # ⚠️ 需要创建此文件或替换为实际镜像
       target: development
     image: spharx/agentos-openlab:dev-latest
     container_name: agentos-openlab-dev

@@ -32,7 +32,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DOCKER_DIR="$PROJECT_ROOT/docker"
+DOCKER_DIR="$PROJECT_ROOT/Docker"
 
 ENVIRONMENT="dev"                            # 默认检查开发环境
 OUTPUT_FORMAT="text"                         # 输出格式: text | json
