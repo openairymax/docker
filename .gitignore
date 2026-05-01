@@ -63,7 +63,11 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+AgentOS-build/
+out/
+cmake-build-*/
 *.o
+*.obj
 *.a
 *.so
 *.dylib
