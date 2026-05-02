@@ -68,13 +68,15 @@ RUN if [ -f CMakeLists.txt ]; then \
             -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_C_FLAGS="-O2" \
             -DCMAKE_CXX_FLAGS="-O2" \
-        && cmake --build . --parallel $(nproc); \
+        && cmake --build . --parallel $(nproc) \
+        && cmake --install . ; \
     fi
 
 # 清理缓存以减小镜像层大小
 RUN find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
-    && rm -rf /root/.cache/pip /tmp/* /var/tmp/*
+    && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
+    && mkdir -p /usr/local/bin /usr/local/lib
 
 # =============================================================================
 # 阶段2: 运行时环境 (Runtime) - 守护进程服务
@@ -119,8 +121,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN mkdir -p /app/bin /app/lib
-COPY --from=builder /build/bin/ /app/bin/
-COPY --from=builder /build/lib/ /app/lib/
+COPY --from=builder /usr/local/bin/ /app/bin/
+COPY --from=builder /usr/local/lib/ /app/lib/
 
 # 复制 Supervisor 配置
 COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
@@ -149,7 +151,7 @@ ENV AGENTOS_HOME=/app \
 
 # 健康检查（检测 Supervisor 主进程）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD pgrep -x supervisord > /dev/null || exit 1
+    CMD curl -fsS http://localhost:18789/api/v1/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1
 
 CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 

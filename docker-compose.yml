@@ -48,7 +48,7 @@ services:
       args:
         BUILD_TYPE: Debug                 # 开发模式启用调试符号
         ENABLE_TESTS: ON                  # 开发模式启用测试
-    image: spharx/agentos-kernel:dev-latest
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:dev-latest
     container_name: agentos-kernel-dev
     hostname: agentos-kernel
     restart: unless-stopped
@@ -154,7 +154,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway                      # ✅ 使用 gateway target（含 HTTP/WS/stdio）
-    image: spharx/agentos-gateway:dev-latest
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:dev-latest
     container_name: agentos-gateway-dev
     hostname: agentos-gateway
     restart: unless-stopped
@@ -403,7 +403,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab  # ⚠️ 需要创建此文件或替换为实际镜像
       target: development
-    image: spharx/agentos-openlab:dev-latest
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:dev-latest
     container_name: agentos-openlab-dev
     hostname: agentos-openlab
     restart: unless-stopped
