@@ -20,8 +20,8 @@ gateway:
       # CORS 配置（跨域资源共享）
       cors:
         allowed_origins:
-          - "http://localhost:5173"
-          - "http://127.0.0.1:5173"
+          - "${DESKTOP_ORIGIN:-http://localhost:5173}"
+          - "${DESKTOP_ORIGIN_ALT:-http://127.0.0.1:5173}"
           - "https://${CORS_DOMAIN:-*.example.com}"
         allowed_methods:
           - "GET"
@@ -61,7 +61,7 @@ gateway:
 
     # 白名单（不受限流影响）
     whitelist_ips:
-      - "127.0.0.1"
+      - "${WHITELIST_IPS:-127.0.0.1}"
       - "::1"
 
   # 上游连接配置（连接 Kernel IPC）
