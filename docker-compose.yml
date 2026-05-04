@@ -125,10 +125,14 @@ services:
           cpus: '1'                        # 保留 CPU 核心数
           memory: 512M                     # 保留内存
 
-    # 安全加固（开发环境适度放宽，但仍遵循最佳实践）
+    # 安全加固（生产级安全策略）
     security_opt:
       - no-new-privileges:true             # 禁止获取新权限（CIS 5.11）
-      - seccomp:unconfined                 # 开发环境暂不限制系统调用
+      - seccomp=./config/seccomp-profile.json  # 限制系统调用白名单
+
+    # 丢弃所有Linux能力（最小权限原则）
+    cap_drop:
+      - ALL
 
     # 只读根文件系统（CIS 5.12）
     read_only: true
@@ -230,7 +234,11 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
-      - seccomp:unconfined
+      - seccomp=./config/seccomp-profile.json
+
+    # 丢弃所有Linux能力
+    cap_drop:
+      - ALL
 
     # 只读根文件系统
     read_only: true
@@ -297,6 +305,12 @@ services:
           cpus: '0.5'
           memory: 512M
 
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
     # 日志配置
     logging:
       driver: json-file
@@ -333,6 +347,12 @@ services:
 
     networks:
       - agentos-backend
+
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     deploy:
       resources:
@@ -401,6 +421,12 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:
@@ -478,6 +504,12 @@ services:
           cpus: '0.5'
           memory: 512M
 
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
     # 日志配置
     logging:
       driver: json-file
@@ -532,6 +564,12 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 健康检查
     healthcheck:
@@ -606,6 +644,12 @@ services:
         reservations:
           cpus: '0.125'
           memory: 128M
+
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:
