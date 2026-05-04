@@ -392,6 +392,7 @@ services:
     # 启动命令（开启 AOF 持久化 + 内存限制）
     command: >
       redis-server
+      --requirepass ${REDIS_PASSWORD}
       --appendonly yes
       --appendfsync everysec
       --maxmemory 256mb
@@ -406,7 +407,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -474,7 +475,7 @@ services:
       - AGENTOS_IPC_URL=http://kernel:18080
       # 数据库连接
       - DATABASE_URL=postgresql://agentos:${POSTGRES_PASSWORD}@postgres:5432/agentos
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       # 时区
       - TZ=Asia/Shanghai
 

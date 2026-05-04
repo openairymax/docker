@@ -375,6 +375,8 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:
@@ -440,7 +442,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -459,6 +461,8 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:
@@ -534,6 +538,8 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:
@@ -590,6 +596,12 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+
+    # 安全加固
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
     # 日志配置
     logging:

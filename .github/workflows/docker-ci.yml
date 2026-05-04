@@ -225,6 +225,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU (for multi-architecture support)
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -246,22 +249,24 @@ jobs:
             type=semver,pattern={{version}}
             latest
 
-      - name: Build and push Kernel image
+      - name: Build and push Kernel image (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.kernel
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}/agentos-kernel:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Gateway image
+      - name: Build and push Gateway image (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.daemon
           target: gateway
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}/agentos-gateway:${{ github.sha }}
           cache-from: type=gha
