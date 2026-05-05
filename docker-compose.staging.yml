@@ -138,6 +138,7 @@ services:
 
     volumes:
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
+      - gateway-staging-logs:/var/log/agentos:rw
 
     environment:
       GATEWAY_BIND_ADDRESS: ${GATEWAY_BIND_ADDRESS:-0.0.0.0}
@@ -542,6 +543,9 @@ volumes:
     driver: local
   redis-staging-data:
     name: agentos_staging_redis_data
+    driver: local
+  gateway-staging-logs:
+    name: agentos_staging_gateway_logs
     driver: local
   prometheus-staging-data:
     name: agentos_staging_prometheus_tsdb

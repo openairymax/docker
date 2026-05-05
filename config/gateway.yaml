@@ -22,6 +22,10 @@ gateway:
         allowed_origins:
           - "${DESKTOP_ORIGIN:-http://localhost:5173}"
           - "${DESKTOP_ORIGIN_ALT:-http://127.0.0.1:5173}"
+          - "http://localhost:1420"
+          - "http://127.0.0.1:1420"
+          - "http://localhost:8080"
+          - "http://127.0.0.1:8080"
           - "https://${CORS_DOMAIN:-*.example.com}"
         allowed_methods:
           - "GET"
