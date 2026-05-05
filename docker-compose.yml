@@ -187,7 +187,7 @@ services:
     # 环境变量
     environment:
       # Gateway 基础配置
-      - GATEWAY_BIND_ADDRESS=0.0.0.0
+      - GATEWAY_BIND_ADDRESS=${GATEWAY_BIND_ADDRESS:-0.0.0.0}
       - GATEWAY_PORT=18789
       - GATEWAY_ADMIN_PORT=18790
       # 上游连接（指向 Kernel IPC）

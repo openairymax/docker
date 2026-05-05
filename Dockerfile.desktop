@@ -1,0 +1,40 @@
+# ===========================================================================
+# AgentOS Desktop Frontend - Multi-stage Dockerfile
+# 版本: 1.0.0 (团队E - 第09轮次)
+# 用途: 构建Desktop Web前端的生产镜像（纯Vite构建，不含Tauri）
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: 构建前端资源
+# ---------------------------------------------------------------------------
+FROM node:20-slim AS builder
+
+WORKDIR /build
+
+COPY Desktop/package.json Desktop/package-lock.json* ./
+
+RUN npm ci --frozen-lockfile --ignore-scripts 2>/dev/null || npm install --frozen-lockfile 2>/dev/null || npm install
+
+COPY Desktop/ .
+
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL:-}
+
+RUN npm run build
+
+# ---------------------------------------------------------------------------
+# Stage 2: 生产运行时 (Nginx静态服务)
+# ---------------------------------------------------------------------------
+FROM nginx:1.25-bookworm AS production
+
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+COPY Docker/config/nginx/desktop.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+STOPSIGNAL SIGQUIT
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:80/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
