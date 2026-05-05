@@ -36,7 +36,7 @@ services:
   kernel:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.kernel
+      dockerfile: Docker/Dockerfile.kernel
       target: runtime
       args:
         BUILD_TYPE: Release
@@ -125,7 +125,7 @@ services:
   gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.daemon
+      dockerfile: Docker/Dockerfile.daemon
       target: gateway
     image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.0.4}-staging
     container_name: agentos-gateway-staging

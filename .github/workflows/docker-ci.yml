@@ -33,32 +33,37 @@ jobs:
       - name: Build Docker images
         run: |
           if [ "${{ matrix.environment }}" = "dev" ]; then
-            docker compose -f docker/docker-compose.yml build --parallel
+            docker compose -f Docker/docker-compose.yml build --parallel
           else
-            docker compose -f docker/docker-compose.staging.yml build --parallel
+            docker compose -f Docker/docker-compose.staging.yml build --parallel
           fi
 
       - name: Verify Dockerfiles linting
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: docker/Dockerfile.kernel
+          dockerfile: Docker/Dockerfile.kernel
           failure-threshold: warning
 
       - uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: docker/Dockerfile.daemon
+          dockerfile: Docker/Dockerfile.daemon
           failure-threshold: warning
 
       - uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: docker/Dockerfile.openlab
+          dockerfile: Docker/Dockerfile.openlab
+          failure-threshold: warning
+
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Docker/Dockerfile.desktop
           failure-threshold: warning
 
       - name: Check Compose files validity
         run: |
-          docker compose -f docker/docker-compose.yml config --quiet
-          docker compose -f docker/docker-compose.prod.yml config --quiet
-          docker compose -f docker/docker-compose.staging.yml config --quiet
+          docker compose -f Docker/docker-compose.yml config --quiet
+          docker compose -f Docker/docker-compose.prod.yml config --quiet
+          docker compose -f Docker/docker-compose.staging.yml config --quiet
 
   # ==========================================================================
   # 安全扫描 (Security Scanning)
@@ -83,7 +88,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Build image for scanning
-        run: docker build -t agentos-kernel:test -f docker/Dockerfile.kernel .
+        run: docker build -t agentos-kernel:test -f Docker/Dockerfile.kernel .
 
       - name: Scan kernel image
         uses: aquasecurity/trivy-action@0.28.0
@@ -146,13 +151,13 @@ jobs:
 
       - name: Start services
         run: |
-          docker compose -f docker/docker-compose.yml up -d kernel gateway
+          docker compose -f Docker/docker-compose.yml up -d kernel gateway
           sleep 30
 
       - name: Run health check
         run: |
-          chmod +x docker/scripts/healthcheck.sh
-          ./docker/scripts/healthcheck.sh --json || true
+          chmod +x Docker/scripts/healthcheck.sh
+          ./Docker/scripts/healthcheck.sh --json || true
 
       - name: Run integration tests
         run: |
@@ -161,12 +166,12 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          docker compose -f docker/docker-compose.yml logs --tail=200 > ci-logs.txt
+          docker compose -f Docker/docker-compose.yml logs --tail=200 > ci-logs.txt
           cat ci-logs.txt
 
       - name: Cleanup
         if: always()
-        run: docker compose -f docker/docker-compose.yml down -v
+        run: docker compose -f Docker/docker-compose.yml down -v
 
   # ==========================================================================
   # 性能基准测试 (Performance Benchmark)
@@ -182,7 +187,7 @@ jobs:
 
       - name: Start full stack
         run: |
-          docker compose -f docker/docker-compose.staging.yml up -d
+          docker compose -f Docker/docker-compose.staging.yml up -d
           sleep 60
 
       - name: Run load tests
@@ -197,8 +202,8 @@ jobs:
           docker stats --no-stream >> benchmark-report.txt
           echo "" >> benchmark-report.txt
           echo "=== Health Status ===" >> benchmark-report.txt
-          chmod +x docker/scripts/healthcheck.sh
-          ./docker/scripts/healthcheck.sh --json >> benchmark-report.txt || true
+          chmod +x Docker/scripts/healthcheck.sh
+          ./Docker/scripts/healthcheck.sh --json >> benchmark-report.txt || true
 
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
@@ -208,7 +213,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose -f docker/docker-compose.staging.yml down -v
+        run: docker compose -f Docker/docker-compose.staging.yml down -v
 
   # ==========================================================================
   # 镜像发布 (Image Publishing)
@@ -253,7 +258,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile.kernel
+          file: Docker/Dockerfile.kernel
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}/agentos-kernel:${{ github.sha }}
@@ -264,7 +269,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/Dockerfile.daemon
+          file: Docker/Dockerfile.daemon
           target: gateway
           platforms: linux/amd64,linux/arm64
           push: true

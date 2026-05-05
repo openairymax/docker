@@ -554,26 +554,26 @@ services:
           cpus: '0.5'
           memory: 512M
 
-    # 安全加固
+    # 安全加固 (CIS Docker Benchmark 5.x)
     security_opt:
-      - no-new-privileges:true
-    read_only: true
+      - no-new-privileges:true              # 禁止权限提升
+    read_only: true                          # 只读文件系统
     tmpfs:
-      - /tmp:size=128M,mode=1777
-      - /run:size=32M,mode=1755
-    cap_drop:
+      - /tmp:size=64M,mode=1777             # 临时目录（可写）
+      - /run:size=8M,mode=1755             # PID/run 文件（可写）
+      - /var/cache/nginx:size=32M,mode=1777 # Nginx缓存（可写）
+    cap_drop:                                # 移除所有不需要的 Linux Capability
       - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-      - SYS_ADMIN
+    cap_add:                                 # 仅保留必要的 Capability
+      - NET_BIND_SERVICE                     # 绑定1024以下端口
 
     # 日志配置
     logging:
       driver: json-file
       options:
-        max-size: "${LOG_MAX_SIZE:-50m}"
-        max-file: "${LOG_MAX_FILE:-5}"
-        tag: "agentos-openlab"
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
 
   # ===========================================================================
   # Prometheus 监控系统（指标采集 + 告警引擎）
