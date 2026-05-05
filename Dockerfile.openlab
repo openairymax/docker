@@ -140,5 +140,8 @@ EXPOSE 5173 8000
 ENV NODE_ENV=development \
     OPENLAB_DEBUG=true
 
+# 开发环境使用非root用户
+USER node
+
 # 开发启动命令
 CMD ["yarn", "dev", "--", "--host", "0.0.0.0"]
