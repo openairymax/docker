@@ -183,6 +183,8 @@ services:
       - ../AgentOS/agentos/gateway:/app/gateway:ro
       # Gateway 配置文件（YAML 格式，含 CORS、限流、JWT 等配置）
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
+      # Gateway 日志持久化（对应 gateway.yaml logging.access_log/error_log）
+      - gateway-logs:/var/log/agentos:rw
 
     # 环境变量
     environment:
@@ -407,7 +409,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -730,6 +732,13 @@ volumes:
   # ---------------------------------------------------------------------------
   openlab-data:
     name: agentos_openlab_data            # OpenLab 用户数据/配置
+    driver: local
+
+  # ---------------------------------------------------------------------------
+  # 应用日志（Nginx + Gateway）
+  # ---------------------------------------------------------------------------
+  gateway-logs:
+    name: agentos_gateway_logs
     driver: local
 
   # ---------------------------------------------------------------------------
