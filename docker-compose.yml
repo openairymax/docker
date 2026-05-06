@@ -409,7 +409,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -463,7 +463,7 @@ services:
 
     # 卷挂载
     volumes:
-      - ../openlab:/app/openlab:ro         # 源码挂载（热重载）
+      - ../AgentOS/agentos/openlab:/app/openlab:ro         # 源码挂载（热重载）（热重载）
       - openlab-data:/app/data:rw          # 用户数据持久化
 
     # 环境变量
@@ -537,10 +537,10 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${DESKTOP_PORT:-8080}:80"           # Web前端（Nginx静态服务）
+      - "${DESKTOP_PORT:-8080}:80"
 
     networks:
-      - agentos-frontend                  # 连接 Gateway API
+      - agentos-frontend
 
     depends_on:
       gateway:

@@ -1,0 +1,54 @@
+groups:
+  - name: kernel
+    rules:
+      - alert: KernelHighMemory
+        expr: container_memory_usage_bytes{container_name=~"agentos-kernel.*"} / container_spec_memory_limit_bytes{container_name=~"agentos-kernel.*"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: kernel
+        annotations:
+          summary: "Kernel memory usage above 85%"
+          description: "Kernel container memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: KernelHighCPU
+        expr: rate(container_cpu_usage_seconds_total{container_name=~"agentos-kernel.*"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: kernel
+        annotations:
+          summary: "Kernel CPU usage above 80%"
+          description: "Kernel container CPU usage is {{ $value | humanize }}%"
+
+      - alert: KernelDown
+        expr: absent(up{service="kernel"}) or up{service="kernel"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: kernel
+        annotations:
+          summary: "Kernel service is down"
+          description: "The kernel service has been unreachable for more than 2 minutes"
+
+  - name: gateway
+    rules:
+      - alert: GatewayDown
+        expr: absent(up{service="gateway"}) or up{service="gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: gateway
+        annotations:
+          summary: "Gateway service is down"
+          description: "The gateway service has been unreachable for more than 2 minutes"
+
+      - alert: GatewayHighErrorRate
+        expr: rate(http_requests_total{service="gateway", status=~"5.."}[5m]) / rate(http_requests_total{service="gateway"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: gateway
+        annotations:
+          summary: "Gateway error rate above 5%"
+          description: "Gateway 5xx error rate is {{ $value | humanizePercentage }} over last 5 minutes"

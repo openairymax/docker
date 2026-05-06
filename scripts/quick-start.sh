@@ -181,7 +181,7 @@ show_access_info() {
             echo -e "  • PostgreSQL:     localhost:15432"
             echo -e "  • Redis:          localhost:16379"
             echo -e "  • Prometheus:     http://localhost:9091"
-            echo -e "  • Grafana:        http://localhost:3000 (admin/<YOUR_GRAFANA_PASSWORD>)"
+            echo -e "  • Grafana:        http://localhost:3000"
             ;;
         prod)
             echo -e "  ${CYAN}服务地址:${NC}"
