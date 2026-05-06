@@ -463,7 +463,7 @@ services:
 
     # 卷挂载
     volumes:
-      - ../AgentOS/agentos/openlab:/app/openlab:ro  # 源码挂载（热重载）
+      - ../openlab:/app/openlab:ro         # 源码挂载（热重载）
       - openlab-data:/app/data:rw          # 用户数据持久化
 
     # 环境变量

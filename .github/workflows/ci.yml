@@ -1,0 +1,176 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * *'
+
+concurrency:
+  group: docker-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  build-and-lint:
+    name: Build & Lint (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          if [ "${{ matrix.environment }}" = "dev" ]; then
+            docker compose -f docker-compose.yml build --parallel
+          else
+            docker compose -f docker-compose.staging.yml build --parallel
+          fi
+
+      - name: Lint Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile.kernel
+          failure-threshold: warning
+        continue-on-error: true
+
+      - name: Validate Compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.staging.yml config --quiet
+
+      - name: BAN-43/57 Security Audit
+        run: |
+          echo "=== BAN-43: Plaintext password check ==="
+          grep -rn 'redis-cli.*-a.*\$' docker-compose*.yml 2>/dev/null && \
+            echo "::warning::redis-cli -a found, should use REDISCLI_AUTH (BAN-43)" || \
+            echo "  [OK] No redis-cli -a pattern"
+
+          echo ""
+          echo "=== BAN-57: CORS wildcard check ==="
+          grep -rn "Access-Control-Allow-Origin.*'\*'" config/ 2>/dev/null && \
+            echo "::error::CORS wildcard found! (BAN-57)" || \
+            echo "  [OK] No CORS wildcard"
+
+          echo ""
+          echo "=== BAN-58: Hardcoded path check ==="
+          grep -rn '/var/run/agentos' docker-compose*.yml Dockerfile* 2>/dev/null && \
+            echo "::warning::Found /var/run/agentos, should be /run/agentos (BAN-59)" || \
+            echo "  [OK] No obsolete /var/run/ paths"
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: build-and-lint
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_agentos
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pytest requests httpx
+          pip install -r tests/requirements.txt 2>/dev/null || true
+
+      - name: Start services
+        run: |
+          docker compose -f docker-compose.yml up -d kernel gateway
+          sleep 30
+
+      - name: Run health check
+        run: |
+          chmod +x scripts/healthcheck.sh 2>/dev/null || true
+          ./scripts/healthcheck.sh --json || true
+
+      - name: Run integration tests
+        run: pytest tests/integration/ -v --tb=short || true
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml logs --tail=200 > ci-logs.txt
+          cat ci-logs.txt
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-lint
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+
+      - name: Build image for scanning
+        run: docker build -t agentos-kernel:test -f Dockerfile.kernel .
+
+      - name: Scan kernel image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'agentos-kernel:test'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

@@ -30,7 +30,6 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 清理编译工具（不需要在后续阶段保留）
 RUN apt-get purge -y build-essential libpq-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -50,7 +49,6 @@ LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# 安装最小化运行时依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     curl \
@@ -63,37 +61,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p /app/{backend,config,data,logs,run,tmp} \
     && chown -R openlab:openlab /app
 
-# 从后端构建阶段复制虚拟环境
 COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# 复制OpenLab后端应用代码（从实际源码路径）
 COPY AgentOS/agentos/openlab/ ./app_src/
-
-# 移动到标准应用目录
 RUN mv /app_src/openlab /app/backend/ 2>/dev/null || mv /app_src/* /app/backend/ 2>/dev/null; true
 
-# 复制Nginx配置（注意：使用正确的大小写路径）
 COPY Docker/config/nginx/openlab.conf /etc/nginx/sites-available/default
 
-# 配置Nginx日志输出到stdout/stderr（便于docker logs收集）
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-# 设置权限
 RUN chown -R openlab:openlab /app /etc/nginx/sites-available/default \
     && find /app -type d -exec chmod 750 {} \; \
     && find /app -type f -exec chmod 640 {} \;
 
-# 切换到非root用户
 USER openlab
 
 WORKDIR /app
 
-# 暴露端口
 EXPOSE 443/tcp 8000/tcp
 
-# 环境变量
 ENV OPENLAB_HOME=/app \
     OPENLAB_CONFIG_DIR=/app/config \
     OPENLAB_DATA_DIR=/app/data \
@@ -108,7 +96,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 CMD ["/bin/sh", "-c", "nginx && cd /app/backend && uvicorn main:app --host 0.0.0.0 --port 8000"]
 
 # =============================================================================
-# 阶段3: 开发环境 (Development) - 含调试工具 + 可写文件系统
+# 阶段3: 开发环境 (Development)
 # =============================================================================
 FROM production AS development
 
@@ -117,17 +105,11 @@ LABEL stage="development"
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdb \
-    strace \
-    vim-tiny \
-    htop \
-    net-tools \
-    iputils-ping \
+    gdb strace vim-tiny htop net-tools iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 USER openlab
 
-ENV LOG_LEVEL=DEBUG \
-    OPENLAB_DEBUG=true
+ENV LOG_LEVEL=DEBUG OPENLAB_DEBUG=true
 
 EXPOSE 5173/tcp 8000/tcp
