@@ -65,9 +65,16 @@ COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY AgentOS/agentos/openlab/ ./app_src/
-RUN mv /app_src/openlab /app/backend/ 2>/dev/null || mv /app_src/* /app/backend/ 2>/dev/null; true
+RUN if [ -d ./app_src/openlab ]; then \
+        cp -r ./app_src/openlab/* /app/backend/ && rm -rf ./app_src; \
+    else \
+        cp -r ./app_src/* /app/backend/ && rm -rf ./app_src; \
+    fi
 
 COPY Docker/config/nginx/openlab.conf /etc/nginx/sites-available/default
+
+COPY Docker/scripts/openlab-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
@@ -93,7 +100,7 @@ ENV OPENLAB_HOME=/app \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -fsS http://localhost:8000/health > /dev/null 2>&1 || exit 1
 
-CMD ["/bin/sh", "-c", "nginx && cd /app/backend && uvicorn main:app --host 0.0.0.0 --port 8000"]
+CMD ["/app/entrypoint.sh"]
 
 # =============================================================================
 # 阶段3: 开发环境 (Development)
@@ -110,6 +117,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 USER openlab
 
-ENV LOG_LEVEL=DEBUG OPENLAB_DEBUG=true
+ENV LOG_LEVEL=DEBUG
+ENV OPENLAB_DEBUG=true
 
 EXPOSE 5173/tcp 8000/tcp

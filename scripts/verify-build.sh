@@ -101,8 +101,8 @@ check_ban_compliance() {
     fi
     
     log_info "扫描 Redis健康检查密码泄露..."
-    if grep -rn 'redis-cli -a' "$DOCKER_DIR/docker-compose"*.yml 2>/dev/null; then
-        log_fail "发现Redis健康检查密码泄露(-a参数)"
+    if grep -rn 'redis-cli -a\|redis-cli --no-auth-warning' "$DOCKER_DIR/docker-compose"*.yml 2>/dev/null; then
+        log_fail "发现Redis健康检查密码泄露(-a参数或--no-auth-warning)"
     else
         log_pass "Redis健康检查: 使用REDISCLI_AUTH环境变量"
     fi
@@ -130,7 +130,7 @@ check_ban_compliance() {
     fi
     
     log_info "检查多架构支持..."
-    if grep -q "platforms: linux/amd64,linux/arm64" "$DOCKER_DIR/.github/workflows/docker-ci.yml" 2>/dev/null; then
+    if grep -q "linux/amd64.*linux/arm64" "$DOCKER_DIR/../.github/workflows/docker-ci.yml" 2>/dev/null; then
         log_pass "CI/CD: 支持多架构构建(amd64+arm64)"
     else
         log_warn "CI/CD: 未检测到多架构支持"

@@ -84,7 +84,7 @@ jobs:
         env:
           POSTGRES_DB: test_agentos
           POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'ci_test_password_2026' }}
         ports:
           - 5432:5432
         options: >-
@@ -95,6 +95,8 @@ jobs:
 
       redis:
         image: redis:7.2-alpine
+        env:
+          REDIS_PASSWORD: ${{ secrets.CI_REDIS_PASSWORD || 'ci_redis_password_2026' }}
         ports:
           - 6379:6379
         options: >-
@@ -118,6 +120,11 @@ jobs:
 
       - name: Start services
         run: |
+          cp .env.staging.example .env.staging
+          sed -i "s|__GENERATE_JWT_SECRET__|$(openssl rand -base64 32)|g" .env.staging
+          sed -i "s|__GENERATE_POSTGRES_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
+          sed -i "s|__GENERATE_REDIS_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
+          sed -i "s|__GENERATE_GRAFANA_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
           docker compose -f docker-compose.yml up -d kernel gateway
           sleep 30
 
