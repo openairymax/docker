@@ -219,9 +219,8 @@ services:
       # 速率限制（生产环境严格限制）
       GATEWAY_GLOBAL_QPS: ${GATEWAY_GLOBAL_QPS:-5000}     # 全局 QPS（比开发低）
       GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-50}       # 单 IP QPS（防 DDoS）
-      # 🔐 JWT 认证配置（Docker Secret 管理）
-      GATEWAY_JWT_SECRET_FILE: /run/secrets/jwt_secret
-      GATEWAY_REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      # 🔐 JWT 认证配置（必须从 .env 注入强密钥！）
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
       GATEWAY_JWT_ISSUER: agentos-gateway-production
       GATEWAY_TOKEN_EXPIRY_HOURS: ${TOKEN_EXPIRY_HOURS:-8}
       GATEWAY_REFRESH_TOKEN_EXPIRY_DAYS: ${REFRESH_TOKEN_DAYS:-7}
@@ -284,10 +283,6 @@ services:
         labels: "service,environment"
         tag: "agentos-gateway"
 
-    secrets:
-      - jwt_secret
-      - redis_password
-
   # ===========================================================================
   # PostgreSQL 高可用数据库集群（HeapStore 慢速存储层）
   # 用途: ACID 事务保证、结构化查询、复杂关联查询
@@ -318,13 +313,10 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agentos}
       POSTGRES_USER: ${POSTGRES_USER:-agentos}
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       PGDATA: /var/lib/postgresql/data/pgdata       # 独立数据目录（性能优化）
       # 字符集和排序规则
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C --username=$(POSTGRES_USER)"
-
-    secrets:
-      - postgres_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
 
     # 网络
     networks:
@@ -426,28 +418,30 @@ services:
     volumes:
       - redis-prod-data:/data:rw
 
-    # 启动命令（生产级 Redis 配置 — 密钥从 Docker Secret 读取）
-    command: sh -c 'exec redis-server \
-      --appendonly yes \
-      --appendfsync everysec \
-      --appendfilename "appendonly.aof" \
-      --auto-aof-rewrite-percentage 100 \
-      --auto-aof-rewrite-min-size 64mb \
-      --maxmemory ${REDIS_MAX_MEMORY:-1024mb} \
-      --maxmemory-policy allkeys-lru \
-      --requirepass "$(cat /run/secrets/redis_password)" \
-      --bind 0.0.0.0 \
-      --port 6379 \
-      --rename-command FLUSHDB "" \
-      --rename-command FLUSHALL "" \
-      --rename-command DEBUG "" \
-      --timeout 300 \
-      --tcp-keepalive 60 \
-      --logfile "" \
-      --loglevel notice'
-
-    secrets:
-      - redis_password
+    # 启动命令（生产级 Redis 配置）
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --appendfilename "appendonly.aof"
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --maxmemory ${REDIS_MAX_MEMORY:-1024mb}
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+      --bind 0.0.0.0
+      --port 6379
+      --tcp-backlog 511
+      --timeout 300
+      --tcp-keepalive 300
+      --save ""
+      --stop-writes-on-bgsave-error yes
+      --databases 16
+      --loglevel notice
+      --syslog-enabled no
+      --lazyfree-lazy-eviction yes
+      --lazyfree-lazy-expire yes
+      --lazyfree-lazy-server-del yes
 
     # 网络
     networks:
@@ -673,7 +667,7 @@ services:
     # 环境变量（安全配置）
     environment:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
-      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_password
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
       GF_USERS_ALLOW_SIGN_UP: false
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
       GF_AUTH_ANONYMOUS_ENABLED: false        # ❌ 生产禁止匿名访问
@@ -732,9 +726,6 @@ services:
         max-file: "${LOG_MAX_FILE:-3}"
         tag: "agentos-grafana"
 
-    secrets:
-      - grafana_password
-
   # ===========================================================================
   # Desktop Web前端 - Production
   # ===========================================================================
@@ -785,28 +776,6 @@ services:
         max-size: "${LOG_MAX_SIZE:-10m}"
         max-file: "${LOG_MAX_FILE:-2}"
         tag: "agentos-desktop"
-
-# =============================================================================
-# Docker Secrets (生产密钥管理)
-# 使用说明:
-#   1. 运行 ./scripts/generate-secrets.sh --prod 生成密钥文件
-#   2. 覆盖 secrets/openai_api_key.txt 和 secrets/deepseek_api_key.txt 为真实值
-#   3. secrets/ 目录已在 .gitignore 中排除
-#   4. Secrets 文件权限自动设置为 600 (仅所有者可读写)
-# =============================================================================
-secrets:
-  postgres_password:
-    file: ./secrets/postgres_password.txt
-  redis_password:
-    file: ./secrets/redis_password.txt
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-  grafana_password:
-    file: ./secrets/grafana_password.txt
-  openai_api_key:
-    file: ./secrets/openai_api_key.txt
-  deepseek_api_key:
-    file: ./secrets/deepseek_api_key.txt
 
 # =============================================================================
 # 网络配置（生产环境双层隔离 + 安全组模拟）
