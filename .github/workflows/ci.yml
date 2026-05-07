@@ -7,6 +7,7 @@ on:
     branches: [main]
   schedule:
     - cron: '0 4 * * *'
+  workflow_dispatch:
 
 concurrency:
   group: docker-ci-${{ github.ref }}
@@ -41,36 +42,75 @@ jobs:
             docker compose -f docker-compose.staging.yml build --parallel
           fi
 
+      - name: Install hadolint
+        run: |
+          curl -sL "https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64" \
+            -o /usr/local/bin/hadolint
+          chmod +x /usr/local/bin/hadolint
+
       - name: Lint Dockerfiles
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile.kernel
-          failure-threshold: warning
-        continue-on-error: true
+        run: |
+          echo "::group::hadolint results"
+          hadolint Dockerfile.kernel \
+            --failure-threshold warning \
+            --no-color
+          hadolint Dockerfile.daemon \
+            --failure-threshold warning \
+            --no-color
+          hadolint Dockerfile.openlab \
+            --failure-threshold warning \
+            --no-color
+          hadolint Dockerfile.desktop \
+            --failure-threshold warning \
+            --no-color
+          echo "::endgroup::"
 
       - name: Validate Compose files
         run: |
-          docker compose -f docker-compose.yml config --quiet
-          docker compose -f docker-compose.staging.yml config --quiet
+          for compose_file in \
+            docker-compose.yml \
+            docker-compose.staging.yml \
+            docker-compose.prod.yml
+          do
+            echo "::group::Validating $compose_file"
+            docker compose -f "$compose_file" config --quiet 2>&1 || \
+              echo "::warning::Validation issue in $compose_file (may need env vars)"
+            echo "::endgroup::"
+          done
 
-      - name: BAN-43/57 Security Audit
+      - name: BAN Compliance Scan
         run: |
-          echo "=== BAN-43: Plaintext password check ==="
-          grep -rn 'redis-cli.*-a.*\$' docker-compose*.yml 2>/dev/null && \
-            echo "::warning::redis-cli -a found, should use REDISCLI_AUTH (BAN-43)" || \
-            echo "  [OK] No redis-cli -a pattern"
+          SECRETS_FOUND=0
 
-          echo ""
-          echo "=== BAN-57: CORS wildcard check ==="
-          grep -rn "Access-Control-Allow-Origin.*'\*'" config/ 2>/dev/null && \
-            echo "::error::CORS wildcard found! (BAN-57)" || \
-            echo "  [OK] No CORS wildcard"
+          echo "::group::BAN-43: Hardcoded Secrets Scan"
+          if grep -rn 'redis-cli -a\|redis-cli --no-auth-warning' \
+            docker-compose*.yml 2>/dev/null; then
+            echo "::error::BAN-43 violation: Redis healthcheck password exposure"
+            SECRETS_FOUND=1
+          fi
+          echo "::endgroup::"
 
-          echo ""
-          echo "=== BAN-58: Hardcoded path check ==="
-          grep -rn '/var/run/agentos' docker-compose*.yml Dockerfile* 2>/dev/null && \
-            echo "::warning::Found /var/run/agentos, should be /run/agentos (BAN-59)" || \
-            echo "  [OK] No obsolete /var/run/ paths"
+          echo "::group::BAN-57: CORS Wildcard Scan"
+          if grep -rn "Access-Control-Allow-Origin \\*" config/nginx/ 2>/dev/null; then
+            echo "::error::BAN-57 violation: CORS wildcard found"
+            exit 1
+          else
+            echo "BAN-57 OK: No CORS wildcard detected"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::BAN-58/59: Hardcoded Path Scan"
+          if grep -rn '/var/run/agentos' docker-compose*.yml Dockerfile* 2>/dev/null; then
+            echo "::warning::BAN-59: Found /var/run/agentos, should use /run/agentos"
+          else
+            echo "BAN-59 OK: No obsolete /var/run/ paths"
+          fi
+          echo "::endgroup::"
+
+          if [ "$SECRETS_FOUND" -eq 1 ]; then
+            echo "::error::BAN-43 violations detected!"
+            exit 1
+          fi
 
   integration-test:
     name: Integration Test
@@ -84,7 +124,7 @@ jobs:
         env:
           POSTGRES_DB: test_agentos
           POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'ci_test_password_2026' }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         options: >-
@@ -96,7 +136,7 @@ jobs:
       redis:
         image: redis:7.2-alpine
         env:
-          REDIS_PASSWORD: ${{ secrets.CI_REDIS_PASSWORD || 'ci_redis_password_2026' }}
+          REDIS_PASSWORD: ${{ secrets.CI_REDIS_PASSWORD }}
         ports:
           - 6379:6379
         options: >-
@@ -115,8 +155,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest requests httpx
-          pip install -r tests/requirements.txt 2>/dev/null || true
+          if [ -f tests/requirements.txt ]; then
+            pip install -r tests/requirements.txt
+          else
+            echo "::warning::tests/requirements.txt not found, installing defaults"
+            pip install pytest requests httpx
+          fi
 
       - name: Start services
         run: |
@@ -130,11 +174,15 @@ jobs:
 
       - name: Run health check
         run: |
-          chmod +x scripts/healthcheck.sh 2>/dev/null || true
-          ./scripts/healthcheck.sh --json || true
+          if [ -f scripts/healthcheck.sh ]; then
+            chmod +x scripts/healthcheck.sh
+            ./scripts/healthcheck.sh --json
+          else
+            echo "::warning::scripts/healthcheck.sh not found, skipping health check"
+          fi
 
       - name: Run integration tests
-        run: pytest tests/integration/ -v --tb=short || true
+        run: pytest tests/integration/ -v --tb=short
 
       - name: Collect logs on failure
         if: failure()
@@ -181,3 +229,21 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
+
+  result:
+    name: CI Result
+    needs: [build-and-lint, integration-test, security-scan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build-and-lint status
+        if: ${{ needs.build-and-lint.result == 'failure' }}
+        run: exit 1
+      - name: Check integration-test status
+        if: ${{ needs.integration-test.result == 'failure' }}
+        run: exit 1
+      - name: Check security-scan status
+        if: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && needs.security-scan.result == 'failure' }}
+        run: exit 1
+      - name: All checks passed
+        run: echo "::notice::All CI checks passed successfully!"

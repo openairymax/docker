@@ -121,7 +121,7 @@ check_service_health() {
 main() {
     parse_args "$@"
 
-    SERVICES=("kernel" "gateway" "postgres" "redis")
+    SERVICES=("kernel" "gateway" "postgres" "redis" "desktop" "openlab" "prometheus" "grafana")
 
     if [ -n "$TARGET_SERVICE" ]; then
         SERVICES=("$TARGET_SERVICE")

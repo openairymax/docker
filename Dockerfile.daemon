@@ -62,18 +62,16 @@ RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0
     && cd ../../daemon \
     && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
-# 编译 C/C++ 组件（如果存在）
+# 编译 C/C++ 组件并清理缓存
 RUN if [ -f CMakeLists.txt ]; then \
         cmake . -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_C_FLAGS="-O2" \
             -DCMAKE_CXX_FLAGS="-O2" \
-        && cmake --build . --parallel $(nproc) \
+        && cmake --build . --parallel "$(nproc)" \
         && cmake --install . ; \
-    fi
-
-# 清理缓存以减小镜像层大小
-RUN find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
+    fi \
+    && find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
     && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
     && mkdir -p /usr/local/bin /usr/local/lib
@@ -82,6 +80,8 @@ RUN find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || 
 # 阶段2: 运行时环境 (Runtime) - 守护进程服务
 # =============================================================================
 FROM ubuntu:24.04 AS runtime
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
       org.opencontainers.image.title="AgentOS Daemon Services v2.0" \
@@ -111,7 +111,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && apt-get autoremove -y \
     && groupadd -r -g 1000 agentos \
-    && useradd -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
+    && useradd -l -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
     && mkdir -p /app/{bin,config,data,logs,run,supervisor/conf.d,tmp} \
     && chown -R agentos:agentos /app \
     && chmod 750 /app \
@@ -120,16 +120,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制虚拟环境和构建产物
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-RUN mkdir -p /app/bin /app/lib
 COPY --from=builder /usr/local/bin/ /app/bin/
 COPY --from=builder /usr/local/lib/ /app/lib/
 
-# 复制 Supervisor 配置
+# 复制 Supervisor 配置并设置权限
 COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-RUN mkdir -p /app/supervisor/conf.d
-
-# 设置权限
-RUN chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
+RUN mkdir -p /app/bin /app/lib /app/supervisor/conf.d \
+    && chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
     && find /app/bin -type f -exec chmod 550 {} \; \
     && chmod 640 /etc/supervisor/supervisord.conf
 
