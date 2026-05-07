@@ -71,10 +71,14 @@ check_service_health() {
             fi
             ;;
         redis)
-            if docker exec "${container_name}" redis-cli --no-auth-warning ping | grep -q PONG; then
+            local health_status
+            health_status=$(docker inspect --format='{{.State.Health.Status}}' "${container_name}" 2>/dev/null || echo "unknown")
+            if [ "$health_status" = "healthy" ]; then
                 http_code=200
-            else
+            elif [ "$health_status" = "unhealthy" ]; then
                 http_code=503
+            else
+                http_code=000
             fi
             ;;
         desktop)
