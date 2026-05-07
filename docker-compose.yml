@@ -310,6 +310,11 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=128M,mode=1777
+      - /run:size=32M,mode=1755
+      - /var/run/postgresql:size=16M,mode=1777
     cap_drop:
       - ALL
 
@@ -350,9 +355,20 @@ services:
     networks:
       - agentos-backend
 
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M,mode=1777
+      - /run:size=8M,mode=1755
     cap_drop:
       - ALL
 
@@ -428,6 +444,10 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
     cap_drop:
       - ALL
 
@@ -510,6 +530,10 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=8M,mode=1755
     cap_drop:
       - ALL
 
@@ -631,6 +655,10 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
     cap_drop:
       - ALL
 
@@ -670,7 +698,7 @@ services:
 
     # 环境变量
     environment:
-      GF_SECURITY_ADMIN_USER: admin       # 管理员账号
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: false       # 禁止自助注册
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
@@ -711,6 +739,11 @@ services:
     # 安全加固
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
+      - /var/lib/grafana:size=128M,mode=1777
     cap_drop:
       - ALL
 
