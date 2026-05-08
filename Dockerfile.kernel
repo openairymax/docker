@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentOS 内核 Dockerfile - 生产级构建
-# 版本: 2.0.1 (Production-Ready)
+# 版本: 0.0.5 (Production-Ready)
 # 最后更新: 2026-04-15
 #
 # 🎯 生产级特性:
@@ -89,7 +89,7 @@ RUN cmake --install .
 
 # 运行测试套件（仅在显式启用时）
 RUN if [ "${ENABLE_TESTS}" = "ON" ]; then \
-        ctest --output-on-failure --timeout 300 || true; \
+        ctest --output-on-failure --timeout 300; \
     fi
 
 # 清理构建中间产物以减小后续复制体积
