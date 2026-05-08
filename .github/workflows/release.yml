@@ -20,8 +20,51 @@ env:
   IMAGE_PREFIX: ${{ github.repository_owner }}/agentos
 
 jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: Docker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose files
+        run: |
+          for f in docker-compose.yml docker-compose.staging.yml docker-compose.prod.yml; do
+            echo "::group::Validating $f"
+            docker compose -f "$f" config --quiet || \
+              echo "::warning::$f validation issue (may need env vars)"
+            echo "::endgroup::"
+          done
+
+      - name: Lint Dockerfiles
+        run: |
+          for df in Dockerfile.kernel Dockerfile.daemon Dockerfile.openlab Dockerfile.desktop; do
+            if command -v hadolint >/dev/null 2>&1; then
+              hadolint "$df" --failure-threshold warning --no-color
+            else
+              echo "::warning::hadolint not installed, skipping lint for $df"
+            fi
+          done
+
+      - name: BAN Compliance Scan
+        run: |
+          if grep -rn "Access-Control-Allow-Origin.*\\*" config/nginx/ 2>/dev/null; then
+            echo "::error::BAN-57 violation: CORS wildcard"
+            exit 1
+          fi
+          if grep -rn 'redis-cli.*-a ' docker-compose*.yml 2>/dev/null; then
+            echo "::error::BAN-43 violation: Redis password exposure"
+            exit 1
+          fi
+          echo "[OK] BAN compliance scan passed"
+
   build-and-push:
     name: Build & Push (${{ matrix.service }})
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -30,9 +73,9 @@ jobs:
       matrix:
         service:
           - kernel
-          - gateway
-          - openlab
           - daemon
+          - openlab
+          - desktop
 
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +105,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.${{ matrix.service }}
+          file: Docker/Dockerfile.${{ matrix.service }}
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -73,12 +117,20 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}
 
+      - name: Verify image pushed
+        run: |
+          echo "Verifying ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.ref_name }}"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.ref_name }}
+
   deploy-staging:
     name: Deploy to Staging
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Docker
 
     steps:
       - uses: actions/checkout@v4
@@ -91,5 +143,37 @@ jobs:
 
       - name: Verify deployment
         run: |
-          sleep 30
+          echo "Waiting for services to become healthy..."
+          for i in $(seq 1 30); do
+            if docker compose -f docker-compose.staging.yml ps | grep -q "healthy"; then
+              echo "All services healthy after ${i}0s"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "ERROR: Services failed to become healthy within 5 minutes"
+              docker compose -f docker-compose.staging.yml logs --tail=100
+              exit 1
+            fi
+            sleep 10
+          done
           docker compose -f docker-compose.staging.yml ps
+
+  release-summary:
+    name: Release Summary
+    needs: [validate, build-and-push, deploy-staging]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check validate status
+        if: ${{ needs.validate.result == 'failure' }}
+        run: exit 1
+      - name: Check build-and-push status
+        if: ${{ needs.build-and-push.result == 'failure' }}
+        run: exit 1
+      - name: All release checks passed
+        if: ${{ always() && needs.validate.result == 'success' && needs.build-and-push.result == 'success' }}
+        run: |
+          echo "::notice::Docker Release completed successfully!"
+          echo "Version: ${{ github.ref_name }}"
+          echo "Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}"
+          echo "Services: kernel, daemon, openlab, desktop"

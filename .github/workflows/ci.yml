@@ -22,6 +22,9 @@ jobs:
     name: Build & Lint (${{ matrix.environment }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Docker
 
     strategy:
       fail-fast: false
@@ -73,8 +76,7 @@ jobs:
             docker-compose.prod.yml
           do
             echo "::group::Validating $compose_file"
-            docker compose -f "$compose_file" config --quiet 2>&1 || \
-              echo "::warning::Validation issue in $compose_file (may need env vars)"
+            docker compose -f "$compose_file" config --quiet 2>&1
             echo "::endgroup::"
           done
 
@@ -117,33 +119,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-lint
     timeout-minutes: 20
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: test_agentos
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7.2-alpine
-        env:
-          REDIS_PASSWORD: ${{ secrets.CI_REDIS_PASSWORD }}
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    defaults:
+      run:
+        working-directory: Docker
 
     steps:
       - uses: actions/checkout@v4
@@ -169,8 +147,13 @@ jobs:
           sed -i "s|__GENERATE_POSTGRES_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
           sed -i "s|__GENERATE_REDIS_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
           sed -i "s|__GENERATE_GRAFANA_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
-          docker compose -f docker-compose.yml up -d kernel gateway
-          sleep 30
+          sed -i "s|__GENERATE_USERNAME__|ci_admin_$(openssl rand -hex 4)|g" .env.staging
+          export GRAFANA_ADMIN_USER=ci_admin
+          export POSTGRES_PASSWORD=$(grep POSTGRES_PASSWORD .env.staging | cut -d= -f2)
+          export REDIS_PASSWORD=$(grep REDIS_PASSWORD .env.staging | cut -d= -f2)
+          export GATEWAY_JWT_SECRET=$(grep GATEWAY_JWT_SECRET .env.staging | cut -d= -f2)
+          docker compose -f docker-compose.yml up -d --wait
+          sleep 10
 
       - name: Run health check
         run: |
@@ -210,12 +193,12 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-          exit-code: '0'
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
 
       - name: Build image for scanning
-        run: docker build -t agentos-kernel:test -f Dockerfile.kernel .
+        run: docker build -t agentos-kernel:test -f Docker/Dockerfile.kernel .
 
       - name: Scan kernel image
         uses: aquasecurity/trivy-action@0.28.0
