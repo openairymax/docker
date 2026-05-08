@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # AgentOS Docker 构建验证脚本
-# 版本: 1.0.0 (团队E - 第09轮次)
+# 版本: 0.0.5 (团队E - 第09轮次)
 # 用途: 验证所有Docker服务的可构建性和BAN合规性
 #
 # 使用方法:
@@ -130,10 +130,10 @@ check_ban_compliance() {
     fi
     
     log_info "检查多架构支持..."
-    if grep -q "linux/amd64.*linux/arm64" "$DOCKER_DIR/../.github/workflows/docker-ci.yml" 2>/dev/null; then
+    if grep -q "linux/amd64.*linux/arm64" "$DOCKER_DIR/.github/workflows/release.yml" 2>/dev/null; then
         log_pass "CI/CD: 支持多架构构建(amd64+arm64)"
     else
-        log_warn "CI/CD: 未检测到多架构支持"
+        log_warn "CI/CD: 未检测到多架构支持(release.yml)"
     fi
     
     log_info "检查安全加固配置..."
@@ -162,6 +162,7 @@ check_dockerfiles_multi_stage() {
         "$DOCKER_DIR/Dockerfile.kernel"
         "$DOCKER_DIR/Dockerfile.daemon"
         "$DOCKER_DIR/Dockerfile.openlab"
+        "$DOCKER_DIR/Dockerfile.desktop"
     )
     
     for dockerfile in "${dockerfiles[@]}"; do
@@ -198,7 +199,7 @@ check_secrets_documentation() {
 
 main() {
     echo "=========================================="
-    echo " AgentOS Docker 构建验证 v1.0.0"
+    echo " AgentOS Docker 构建验证 v0.0.5"
     echo " 团队E - 第09轮次"
     echo " 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="
