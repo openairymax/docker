@@ -26,6 +26,8 @@
 # =============================================================================
 FROM ubuntu:24.04 AS builder
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILD_TYPE=Release
 ARG ENABLE_TESTS=OFF
@@ -65,12 +67,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制源代码和构建配置
-COPY agentos/ ./agentos/
-COPY CMakeLists.txt ./
-COPY Makefile* ./
+COPY AgentOS/agentos/ ./agentos/
+COPY AgentOS/CMakeLists.txt ./
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
-RUN cmake .. \
+RUN cmake -S ./agentos -B . \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_TESTS=${ENABLE_TESTS} \
@@ -81,7 +82,10 @@ RUN cmake .. \
     -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
 
 # 并行构建项目（利用所有 CPU 核心）
-RUN cmake --build . --parallel $(nproc)
+RUN cmake --build . --parallel "$(nproc)"
+
+# 安装构建产物到标准目录
+RUN cmake --install .
 
 # 运行测试套件（仅在显式启用时）
 RUN if [ "${ENABLE_TESTS}" = "ON" ]; then \
@@ -95,6 +99,8 @@ RUN find /build -name "*.o" -delete 2>/dev/null || true
 # 阶段2: 运行时环境 (Runtime) - 最终生产镜像
 # =============================================================================
 FROM ubuntu:24.04 AS runtime
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # 元数据标签（符合 OCI Image Spec）
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
@@ -136,18 +142,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 创建专用系统用户（非 root，无 shell，无密码）
 RUN groupadd -r -g 1000 agentos \
-    && useradd -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
+    && useradd -l -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
     && mkdir -p /app/{bin,config,data,logs,lib,tmp,run} \
     && chown -R agentos:agentos /app \
     && chmod 750 /app \
     && chmod 700 /app/config /app/data /app/logs /app/run
 
-# 从构建阶段仅复制必要的二进制产物
-COPY --from=builder /build/bin/ /app/bin/
-COPY --from=builder /build/lib/ /app/lib/
+# 从构建阶段仅复制必要的二进制产物并设置权限
+COPY --from=builder /usr/local/bin/ /app/bin/
+COPY --from=builder /usr/local/lib/ /app/lib/
 
 # 复制生产环境配置模板（只读挂载点）
-COPY docker/config/ /app/config/
+COPY Docker/config/ /app/config/
 
 # 设置正确的文件权限
 RUN chown -R agentos:agentos /app/bin /app/lib /app/config \

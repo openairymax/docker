@@ -188,7 +188,7 @@ docker compose --profile monitoring up -d
 | 服务 | URL | 默认凭据 |
 |------|-----|----------|
 | Prometheus | http://localhost:9091 | 无 |
-| Grafana | http://localhost:3000 | admin / admin_dev_2024 |
+| Grafana | http://localhost:3000 | admin / &lt;见.env中GRAFANA_ADMIN_PASSWORD&gt; |
 | AlertManager | http://localhost:9093 | 无 |
 
 ### 预置仪表盘
@@ -290,8 +290,8 @@ docker exec agentos-postgres-dev psql -U agentos -c "SELECT count(*) FROM pg_sta
 #### 3. Redis 连接失败
 
 ```bash
-# 测试 Redis 连接
-docker exec agentos-redis-dev redis-cli -a <password> ping
+# 测试 Redis 连接（使用REDISCLI_AUTH避免密码泄露）
+docker exec agentos-redis-dev sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
 ```
 
 #### 4. 端口冲突

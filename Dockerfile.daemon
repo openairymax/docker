@@ -48,8 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制守护进程源码和 Python SDK
-COPY agentos/daemon/ ./agentos/daemon/
-COPY agentos/toolkit/python/ ./agentos/toolkit/python/
+COPY AgentOS/agentos/daemon/ ./agentos/daemon/
+COPY AgentOS/agentos/toolkit/python/ ./agentos/toolkit/python/
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
@@ -62,24 +62,26 @@ RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0
     && cd ../../daemon \
     && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
-# 编译 C/C++ 组件（如果存在）
+# 编译 C/C++ 组件并清理缓存
 RUN if [ -f CMakeLists.txt ]; then \
         cmake . -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_C_FLAGS="-O2" \
             -DCMAKE_CXX_FLAGS="-O2" \
-        && cmake --build . --parallel $(nproc); \
-    fi
-
-# 清理缓存以减小镜像层大小
-RUN find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
+        && cmake --build . --parallel "$(nproc)" \
+        && cmake --install . ; \
+    fi \
+    && find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
-    && rm -rf /root/.cache/pip /tmp/* /var/tmp/*
+    && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
+    && mkdir -p /usr/local/bin /usr/local/lib
 
 # =============================================================================
 # 阶段2: 运行时环境 (Runtime) - 守护进程服务
 # =============================================================================
 FROM ubuntu:24.04 AS runtime
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
       org.opencontainers.image.title="AgentOS Daemon Services v2.0" \
@@ -109,7 +111,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && apt-get autoremove -y \
     && groupadd -r -g 1000 agentos \
-    && useradd -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
+    && useradd -l -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
     && mkdir -p /app/{bin,config,data,logs,run,supervisor/conf.d,tmp} \
     && chown -R agentos:agentos /app \
     && chmod 750 /app \
@@ -118,15 +120,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制虚拟环境和构建产物
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-COPY --from=builder /build/bin/ /app/bin/ 2>/dev/null || true
-COPY --from=builder /build/lib/ /app/lib/ 2>/dev/null || true
+COPY --from=builder /usr/local/bin/ /app/bin/
+COPY --from=builder /usr/local/lib/ /app/lib/
 
-# 复制 Supervisor 配置
-COPY docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-COPY docker/config/supervisor/conf.d/*.conf /app/supervisor/conf.d/ 2>/dev/null || true
-
-# 设置权限
-RUN chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
+# 复制 Supervisor 配置并设置权限
+COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+RUN mkdir -p /app/bin /app/lib /app/supervisor/conf.d \
+    && chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
     && find /app/bin -type f -exec chmod 550 {} \; \
     && chmod 640 /etc/supervisor/supervisord.conf
 
@@ -148,7 +148,7 @@ ENV AGENTOS_HOME=/app \
 
 # 健康检查（检测 Supervisor 主进程）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD pgrep -x supervisord > /dev/null || exit 1
+    CMD curl -fsS http://localhost:18789/api/v1/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1
 
 CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
@@ -158,7 +158,7 @@ CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 FROM runtime AS gateway
 
 # 复制 Gateway 配置
-COPY docker/config/gateway.yaml /app/config/gateway.yaml
+COPY Docker/config/gateway.yaml /app/config/gateway.yaml
 
 # 额外暴露 Gateway 管理端口
 EXPOSE 18789/tcp 18790/tcp

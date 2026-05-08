@@ -20,9 +20,13 @@ gateway:
       # CORS 配置（跨域资源共享）
       cors:
         allowed_origins:
-          - "http://localhost:5173"
-          - "http://127.0.0.1:5173"
-          - "https://*.spharx.cn"
+          - "${DESKTOP_ORIGIN:-http://localhost:5173}"
+          - "${DESKTOP_ORIGIN_ALT:-http://127.0.0.1:5173}"
+          - "${DESKTOP_DEV_ORIGIN:-http://localhost:1420}"
+          - "${DESKTOP_DEV_ORIGIN_ALT:-http://127.0.0.1:1420}"
+          - "${OPENLAB_DEV_ORIGIN:-http://localhost:8080}"
+          - "${OPENLAB_DEV_ORIGIN_ALT:-http://127.0.0.1:8080}"
+          - "https://${CORS_DOMAIN:-*.example.com}"
         allowed_methods:
           - "GET"
           - "POST"
@@ -61,7 +65,7 @@ gateway:
 
     # 白名单（不受限流影响）
     whitelist_ips:
-      - "127.0.0.1"
+      - "${WHITELIST_IPS:-127.0.0.1}"
       - "::1"
 
   # 上游连接配置（连接 Kernel IPC）
