@@ -36,12 +36,12 @@ services:
   kernel:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.kernel
+      dockerfile: Docker/Dockerfile.kernel
       target: runtime
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: spharx/agentos-kernel:${AGENTOS_VERSION:-0.0.4}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.0.4}-staging
     container_name: agentos-kernel-staging
     hostname: agentos-kernel
     restart: unless-stopped
@@ -103,6 +103,14 @@ services:
 
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=128M,mode=1777
+      - /run:size=32M,mode=1755
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
     logging:
       driver: json-file
@@ -117,9 +125,9 @@ services:
   gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.daemon
+      dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: spharx/agentos-gateway:${AGENTOS_VERSION:-0.0.4}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.0.4}-staging
     container_name: agentos-gateway-staging
     hostname: agentos-gateway
     restart: unless-stopped
@@ -130,16 +138,17 @@ services:
 
     volumes:
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
+      - gateway-staging-logs:/var/log/agentos:rw
 
     environment:
-      GATEWAY_BIND_ADDRESS: 0.0.0.0
+      GATEWAY_BIND_ADDRESS: ${GATEWAY_BIND_ADDRESS:-0.0.0.0}
       GATEWAY_PORT: 18789
       GATEWAY_ADMIN_PORT: 18790
       GATEWAY_UPSTREAM_URL: http://kernel:18080
       GATEWAY_PROTOCOLS: http,websocket,stdio
       GATEWAY_GLOBAL_QPS: ${GATEWAY_GLOBAL_QPS:-10000}
       GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-200}
-      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET:-staging_jwt_secret_2024_change_me}
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
       GATEWAY_JWT_ISSUER: agentos-gateway-staging
       TOKEN_EXPIRY_HOURS: ${TOKEN_EXPIRY_HOURS:-4}
       REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-2}
@@ -172,6 +181,14 @@ services:
 
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
     logging:
       driver: json-file
@@ -198,7 +215,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agentos_staging}
       POSTGRES_USER: ${POSTGRES_USER:-agentos}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-staging_password_2024}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
 
@@ -214,14 +231,22 @@ services:
 
     command:
       - postgres
-      - -c, max_connections=${PG_MAX_CONNECTIONS:-100}
-      - -c, shared_buffers=${PG_SHARED_BUFFERS:-128MB}
-      - -c, effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-512MB}
-      - -c, work_mem=${PG_WORK_MEM:-4MB}
-      - -c, maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-32MB}
-      - -c, wal_level=replica
-      - -c, log_min_duration_statement=${PG_SLOW_QUERY_MS:-500}
-      - -c, log_statement=all
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-100}
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-128MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-512MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-4MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-32MB}
+      - -c
+      - wal_level=replica
+      - -c
+      - log_min_duration_statement=${PG_SLOW_QUERY_MS:-500}
+      - -c
+      - log_statement=all
 
     deploy:
       resources:
@@ -231,6 +256,16 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=128M,mode=1777
+      - /run:size=32M,mode=1755
+      - /var/run/postgresql:size=16M,mode=1777
+    cap_drop:
+      - ALL
 
     logging:
       driver: json-file
@@ -260,7 +295,7 @@ services:
       --appendfsync everysec
       --maxmemory ${REDIS_MAX_MEMORY:-256mb}
       --maxmemory-policy allkeys-lru
-      --requirepass ${REDIS_PASSWORD:-staging_redis_2024}
+      --requirepass ${REDIS_PASSWORD}
       --save ""
       --loglevel notice
 
@@ -268,7 +303,7 @@ services:
       - agentos-backend-staging
 
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-staging_redis_2024}", "ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -282,6 +317,15 @@ services:
         reservations:
           cpus: '0.125'
           memory: 64M
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
+    cap_drop:
+      - ALL
 
     logging:
       driver: json-file
@@ -317,6 +361,13 @@ services:
     networks:
       - agentos-backend-staging
 
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
     deploy:
       resources:
         limits:
@@ -325,6 +376,15 @@ services:
         reservations:
           cpus: '0.125'
           memory: 128M
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
+    cap_drop:
+      - ALL
 
     logging:
       driver: json-file
@@ -346,11 +406,11 @@ services:
       - "3000:3000"
 
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_staging_2024}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: false
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/"
-      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ENABLED: false
       GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-piechart-panel"
       GF_LOG_LEVEL: info
 
@@ -365,6 +425,13 @@ services:
     depends_on:
       - prometheus
 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
     deploy:
       resources:
         limits:
@@ -374,10 +441,144 @@ services:
           cpus: '0.0625'
           memory: 64M
 
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=16M,mode=1755
+    cap_drop:
+      - ALL
+
     logging:
       driver: json-file
       options:
         max-size: "10m"
+        max-file: "2"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # OpenLab 应用服务 - Staging
+  # ===========================================================================
+  openlab:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.openlab
+      target: production
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.0.4}-staging
+    container_name: agentos-openlab-staging
+    hostname: agentos-openlab
+    restart: unless-stopped
+    profiles:
+      - openlab
+
+    ports:
+      - "${OPENLAB_WEB_PORT:-443}:443"
+      - "${OPENLAB_API_PORT:-8000}:8000"
+
+    volumes:
+      - openlab-staging-data:/app/data:rw
+
+    environment:
+      OPENLAB_DEBUG: false
+      OPENLAB_PORT: 443
+      AGENTOS_GATEWAY_URL: http://gateway:18789
+      AGENTOS_IPC_URL: http://kernel:18080
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      OPENLAB_SECRET_KEY: ${OPENLAB_SECRET_KEY}
+      OPENLAB_SESSION_TIMEOUT: ${SESSION_TIMEOUT:-3600}
+      TZ: ${TZ:-Asia/Shanghai}
+
+    networks:
+      - agentos-frontend-staging
+
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-kf", "https://localhost:443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+      - /run:size=8M,mode=1755
+      - /var/cache/nginx:size=32M,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+  # ===========================================================================
+  # Desktop Web前端 - Staging
+  # ===========================================================================
+  desktop:
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-desktop:${AGENTOS_VERSION:-latest}
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.desktop
+    container_name: agentos-desktop-staging
+    restart: unless-stopped
+    ports:
+      - "${DESKTOP_PORT:-8080}:80"
+    networks:
+      - agentos-frontend-staging
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.0625'
+          memory: 32M
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32M,mode=1777
+      - /run:size=8M,mode=1755
+      - /var/cache/nginx:size=16M,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
         max-file: "2"
         tag: "{{.Name}}"
 
@@ -386,13 +587,13 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.29.0.0/16
+        - subnet: ${BACKEND_SUBNET:-172.29.0.0/16}
 
   agentos-frontend-staging:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: ${FRONTEND_SUBNET:-172.28.0.0/16}
 
 volumes:
   heapstore-staging-data:
@@ -418,6 +619,12 @@ volumes:
     driver: local
   redis-staging-data:
     name: agentos_staging_redis_data
+    driver: local
+  gateway-staging-logs:
+    name: agentos_staging_gateway_logs
+    driver: local
+  openlab-staging-data:
+    name: agentos_staging_openlab_data
     driver: local
   prometheus-staging-data:
     name: agentos_staging_prometheus_tsdb

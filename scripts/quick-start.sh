@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
 # AgentOS Docker 快速启动脚本 (Quick Start Script)
-# 版本: 0.0.4
-# 最后更新: 2026-04-23
+# 版本: 0.0.5
+# 最后更新: 2026-05-04
 #
 # 使用方法:
 #   ./scripts/quick-start.sh              # 交互式启动
@@ -18,8 +18,8 @@ set -euo pipefail
 # 全局变量
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DOCKER_DIR="$PROJECT_ROOT/docker"
+DOCKER_DIR="$SCRIPT_DIR/.."
+PROJECT_ROOT="$(cd "$DOCKER_DIR/.." && pwd)"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -108,6 +108,9 @@ start_dev() {
         cp "$DOCKER_DIR/.env.example" "$DOCKER_DIR/.env" 2>/dev/null || true
         echo -e "${CYAN}已创建 .env 配置文件${NC}"
     fi
+
+    # 自动生成随机密码 (BAN-43合规)
+    generate_passwords_if_needed "$DOCKER_DIR/.env"
     
     docker compose -f "$DOCKER_DIR/docker-compose.yml" up -d
     
@@ -115,7 +118,7 @@ start_dev() {
 }
 
 start_staging() {
-    echo -e "${Yellow}[启动] 预发布环境...${NC}"
+    echo -e "${YELLOW}[启动] 预发布环境...${NC}"
     
     cd "$PROJECT_ROOT"
     
@@ -124,6 +127,9 @@ start_staging() {
         cp "$DOCKER_DIR/.env.staging.example" "$DOCKER_DIR/.env.staging"
         echo -e "${CYAN}已创建 .env.staging 配置文件${NC}"
     fi
+
+    # 自动生成随机密码 (BAN-43合规)
+    generate_passwords_if_needed "$DOCKER_DIR/.env.staging"
     
     docker compose -f "$DOCKER_DIR/docker-compose.staging.yml" \
         --env-file "$DOCKER_DIR/.env.staging" up -d
@@ -133,9 +139,15 @@ start_staging() {
 
 start_prod() {
     if [[ ! -f "$DOCKER_DIR/.env.production" ]]; then
-        echo -e "${RED}[错误] 未找到 .env.production 文件${NC}"
-        echo "请执行: cp $DOCKER_DIR/.env.production.example $DOCKER_DIR/.env.production"
-        echo "然后编辑该文件并填入生产密钥"
+        cp "$DOCKER_DIR/.env.production.example" "$DOCKER_DIR/.env.production" 2>/dev/null || true
+        echo -e "${CYAN}已创建 .env.production 配置文件${NC}"
+    fi
+
+    # 自动生成随机密码 (BAN-43合规)
+    generate_passwords_if_needed "$DOCKER_DIR/.env.production"
+    
+    if grep -q "__GENERATE__\|__GENERATE_USERNAME__" "$DOCKER_DIR/.env.production" 2>/dev/null; then
+        echo -e "${RED}[错误] 生产环境存在未生成的 __GENERATE__ 占位符，请检查以上输出${NC}"
         return 1
     fi
     
@@ -181,7 +193,7 @@ show_access_info() {
             echo -e "  • PostgreSQL:     localhost:15432"
             echo -e "  • Redis:          localhost:16379"
             echo -e "  • Prometheus:     http://localhost:9091"
-            echo -e "  • Grafana:        http://localhost:3000 (admin/admin_staging_2024)"
+            echo -e "  • Grafana:        http://localhost:3000"
             ;;
         prod)
             echo -e "  ${CYAN}服务地址:${NC}"
