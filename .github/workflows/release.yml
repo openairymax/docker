@@ -44,7 +44,9 @@ jobs:
         run: |
           for df in Dockerfile.kernel Dockerfile.daemon Dockerfile.openlab Dockerfile.desktop; do
             if command -v hadolint >/dev/null 2>&1; then
-              hadolint "$df" --failure-threshold warning --no-color || true
+              hadolint "$df" --failure-threshold warning --no-color
+            else
+              echo "::warning::hadolint not installed, skipping lint for $df"
             fi
           done
 
