@@ -41,7 +41,7 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.0.4}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.0.5}-staging
     container_name: agentos-kernel-staging
     hostname: agentos-kernel
     restart: unless-stopped
@@ -127,7 +127,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.0.4}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.0.5}-staging
     container_name: agentos-gateway-staging
     hostname: agentos-gateway
     restart: unless-stopped
@@ -465,7 +465,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.0.4}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.0.5}-staging
     container_name: agentos-openlab-staging
     hostname: agentos-openlab
     restart: unless-stopped
