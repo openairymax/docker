@@ -47,6 +47,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # YAML/JSON 解析库
     libyaml-dev=0.2.5-7build2 \
     libcjson-dev=1.7.15-1build1 \
+    libcurl4-openssl-dev=8.5.0-1ubuntu3 \
+    libcjson-dev=1.7.17-1 \
+    libsqlite3-dev=3.45.1-1ubuntu2 \
     # 包管理
     pkg-config=1.8.1-1ubuntu2 \
     # 内存分析工具（仅 Debug 构建）
@@ -67,11 +70,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制源代码和构建配置
-COPY AgentOS/agentos/ ./agentos/
-COPY AgentOS/CMakeLists.txt ./
+COPY AgentOS/ ./AgentOS/
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
-RUN cmake -S ./agentos -B . \
+RUN cmake -S ./AgentOS -B . \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_TESTS=${ENABLE_TESTS} \
@@ -104,14 +106,14 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # 元数据标签（符合 OCI Image Spec）
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Kernel v2.0.1" \
+      org.opencontainers.image.title="AgentOS Kernel v0.0.5" \
       org.opencontainers.image.description="AgentOS智能体操作系统内核层 (生产级)" \
-      org.opencontainers.image.version="2.0.1" \
+      org.opencontainers.image.version="0.0.5" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.documentation="https://docs.spharx.cn/agentos/docker" \
       org.opencontainers.image.vendor="SPHARX Ltd." \
       org.opencontainers.image.licenses="Proprietary" \
-      org.opencontainers.image.ref.name="spharx/agentos:kernel-v2.0.1" \
+      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.0.5" \
       org.opencontainers.image.base.digest="" \
       org.opencontainers.image.created="2026-04-15T00:00:00Z"
 
