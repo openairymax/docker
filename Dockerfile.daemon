@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentOS Daemon Dockerfile - 生产级构建
-# 版本: 0.0.5 (Production-Ready)
+# 版本: 0.1.0 (Production-Ready)
 # 最后更新: 2026-04-15
 #
 # 🎯 生产级特性:
@@ -85,9 +85,9 @@ FROM ubuntu:24.04 AS runtime
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Daemon Services v0.0.5" \
+      org.opencontainers.image.title="AgentOS Daemon Services v0.1.0" \
       org.opencontainers.image.description="AgentOS守护进程服务层 (生产级)" \
-      org.opencontainers.image.version="0.0.5" \
+      org.opencontainers.image.version="0.1.0" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.vendor="SPHARX Ltd."
 

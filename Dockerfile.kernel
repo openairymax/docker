@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentOS 内核 Dockerfile - 生产级构建
-# 版本: 0.0.5 (Production-Ready)
+# 版本: 0.1.0 (Production-Ready)
 # 最后更新: 2026-04-15
 #
 # 🎯 生产级特性:
@@ -106,14 +106,14 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # 元数据标签（符合 OCI Image Spec）
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Kernel v0.0.5" \
+      org.opencontainers.image.title="AgentOS Kernel v0.1.0" \
       org.opencontainers.image.description="AgentOS智能体操作系统内核层 (生产级)" \
-      org.opencontainers.image.version="0.0.5" \
+      org.opencontainers.image.version="0.1.0" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.documentation="https://docs.spharx.cn/agentos/docker" \
       org.opencontainers.image.vendor="SPHARX Ltd." \
       org.opencontainers.image.licenses="Proprietary" \
-      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.0.5" \
+      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.1.0" \
       org.opencontainers.image.base.digest="" \
       org.opencontainers.image.created="2026-04-15T00:00:00Z"
 
