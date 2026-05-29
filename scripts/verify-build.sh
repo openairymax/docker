@@ -199,7 +199,7 @@ check_secrets_documentation() {
 
 main() {
     echo "=========================================="
-    echo " AgentOS Docker 构建验证 v0.0.5"
+    echo " AgentOS Docker 构建验证 v0.1.0"
     echo " 团队E - 第09轮次"
     echo " 时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=========================================="

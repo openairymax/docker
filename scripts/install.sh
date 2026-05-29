@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # 常量定义
 # -----------------------------------------------------------------------------
-readonly AGENTOS_VERSION="${AGENTOS_VERSION:-0.0.4}"
+readonly AGENTOS_VERSION="${AGENTOS_VERSION:-0.1.0}"
 readonly INSTALL_DIR="${HOME}/.agentos"
 readonly DOCKER_CONFIG_DIR="${HOME}/.docker"
 readonly REPO_URL="https://github.com/spharx/agentos"
