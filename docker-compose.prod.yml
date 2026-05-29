@@ -69,7 +69,7 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.0.5}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.1.0}
     hostname: agentos-kernel
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
@@ -190,7 +190,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.0.5}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.1.0}
     hostname: agentos-gateway
     restart: always
 
@@ -493,7 +493,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production                     # 使用 production target
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.0.5}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.1.0}
     container_name: agentos-openlab-prod
     hostname: agentos-openlab
     restart: always

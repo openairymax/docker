@@ -10,7 +10,7 @@ Powered by OpenAirymax
 
 [![AtomGit](https://atomgit.com/openairymax/docker/star/badge.svg)](https://atomgit.com/openairymax/docker)
  
-[![Version](https://img.shields.io/badge/version-0.0.4-5a6b7e)](https://atomgit.com/openairymax/docker)
+[![Version](https://img.shields.io/badge/version-0.1.0-5a6b7e)](https://atomgit.com/openairymax/docker)
 [![License](https://img.shields.io/badge/license-Proprietary-4a90d9)](https://atomgit.com/openairymax/docker/blob/main/LICENSE)
 
 [![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
@@ -99,7 +99,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  应用层 (Application)                │
-│   OpenLab Web UI │ Python SDK v0.0.4 │ Go SDK       │
+│   OpenLab Web UI │ Python SDK v0.1.0 │ Go SDK       │
 ├─────────────────────────────────────────────────────┤
 │                  网关层 (Gateway)                     │
 │   HTTP REST │ WebSocket │ stdio (Port: 18789)      │
@@ -122,7 +122,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 |------|------|------|------|
 | AgentOS Kernel | v2.0.0 | 18080 (IPC) / 9090 (Metrics) | 微内核核心 |
 | AgentOS Gateway | v2.0.0 | 18789 (API) / 18790 (Admin) | 三协议网关 |
-| Python SDK | v0.0.4 | 默认连接 18789 | `agentos` Python 包 |
+| Python SDK | v0.1.0 | 默认连接 18789 | `agentos` Python 包 |
 | PostgreSQL | 15-alpine | 5432 (内网) | 关系型数据库 |
 | Redis | 7-alpine | 6379 (内网) | 内存缓存 |
 | Prometheus | v2.45.0 | 9091 (偏移) | 监控引擎 |
@@ -226,7 +226,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 OpenLab (可选)
     │
     ▼
-Gateway (必需) ◄──── 外部客户端 / Python SDK v0.0.4
+Gateway (必需) ◄──── 外部客户端 / Python SDK v0.1.0
     │
     ├──────────────────┐
     ▼                  ▼
@@ -1938,7 +1938,7 @@ docker/
 
 ### 12. 版本更新日志
 
-#### v0.0.4 (2026-04-23) - Release
+#### v0.1.0 (2026-04-23) - Release
 
 **🎉 重大更新:**
 
@@ -1986,7 +1986,7 @@ docker/
 
 ##### 📚 文档改进 (Documentation)
 
-- **README.md v0.0.4**: 更新快速开始指南，新增 Make 和脚本用法
+- **README.md v0.1.0**: 更新快速开始指南，新增 Make 和脚本用法
 
 ---
 
@@ -2019,7 +2019,7 @@ docker/
 ##### 🐛 Bug 修复 (Bug Fixes)
 
 - **端口修正**: Kernel IPC 端口从 8080 修正为 **18080** (与源码 syscalls.h 一致)
-- **Gateway 端口**: 统一 API 入口修正为 **18789** (匹配 Python SDK v0.0.4 默认值)
+- **Gateway 端口**: 统一 API 入口修正为 **18789** (匹配 Python SDK v0.1.0 默认值)
 - **健康检查 URL**: 从 `/health` 修正为 `/api/v1/health` (符合 RESTful 规范)
 - **Dockerfile targets**: 更新为新的多阶段构建 target 名称 (runtime/gateway/debug)
 
@@ -2098,5 +2098,5 @@ docker compose -f docker/docker-compose.prod.yml \
 
 <p align="center">
   <strong>Made with ❤️ by SPHARX Platform Team</strong><br>
-  <em>Last Updated: 2026-04-23 | Version: 0.0.4</em>
+  <em>Last Updated: 2026-04-23 | Version: 0.1.0</em>
 </p>
