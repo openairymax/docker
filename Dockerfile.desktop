@@ -26,6 +26,13 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 FROM nginx:1.27-alpine AS production
 
+LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
+      org.opencontainers.image.title="AgentOS Desktop" \
+      org.opencontainers.image.description="AgentOS Desktop Web Frontend" \
+      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
+      org.opencontainers.image.vendor="SPHARX Ltd."
+
 RUN rm -rf /usr/share/nginx/html/*
 
 COPY --from=builder /build/dist /usr/share/nginx/html
