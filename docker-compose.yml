@@ -1,0 +1,342 @@
+# =============================================================================
+# AgentOS Docker Compose - 开发环境
+# 版本: 0.2.0
+# 最后更新: 2026-06-03
+#
+# 使用方法:
+#   docker compose --env-file .env.dev up -d
+#   docker compose --env-file .env.dev down
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # 内核服务 (Kernel) — 所有 daemon 进程的基础容器
+  # ===========================================================================
+  kernel:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.kernel
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+        ENABLE_TESTS: ON
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-kernel-dev
+    hostname: agentos-kernel
+    restart: unless-stopped
+    ports:
+      - "${KERNEL_IPC_PORT:-18080}:18080"
+    volumes:
+      - agentos_data:/var/lib/agentos
+      - agentos_logs:/var/log/agentos
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 市场调度 Daemon (market_d)
+  # ===========================================================================
+  market_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-market_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-market_d-dev
+    hostname: agentos-market
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentos_data:/var/lib/agentos
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "market", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 监控 Daemon (monit_d)
+  # ===========================================================================
+  monit_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-monit_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-monit_d-dev
+    hostname: agentos-monit
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentos_logs:/var/log/agentos
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "monit", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 通知 Daemon (notify_d)
+  # ===========================================================================
+  notify_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-notify_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-notify_d-dev
+    hostname: agentos-notify
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "notify", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 观测 Daemon (observe_d)
+  # ===========================================================================
+  observe_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-observe_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-observe_d-dev
+    hostname: agentos-observe
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentos_logs:/var/log/agentos
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "observe", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 调度 Daemon (sched_d)
+  # ===========================================================================
+  sched_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-sched_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-sched_d-dev
+    hostname: agentos-sched
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "sched", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 工具 Daemon (tool_d)
+  # ===========================================================================
+  tool_d:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-tool_d:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-tool_d-dev
+    hostname: agentos-tool
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "agentos-cli", "tool", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentos-net
+
+  # ===========================================================================
+  # 网关服务 (Gateway)
+  # ===========================================================================
+  gateway:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.daemon
+      target: gateway
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.2.0}-dev
+    container_name: agentos-gateway-dev
+    hostname: agentos-gateway
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+      - "${GATEWAY_WS_PORT:-8081}:8081"
+    environment:
+      - AGENTOS_ENV=development
+      - AGENTOS_KERNEL_HOST=kernel
+      - AGENTOS_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentos-net
+
+# =============================================================================
+# 网络
+# =============================================================================
+networks:
+  agentos-net:
+    name: agentos-net-dev
+    driver: bridge
+
+# =============================================================================
+# 卷
+# =============================================================================
+volumes:
+  agentos_data:
+    name: agentos_data_dev
+  agentos_logs:
+    name: agentos_logs_dev
