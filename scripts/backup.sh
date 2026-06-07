@@ -43,7 +43,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DOCKER_DIR="$PROJECT_ROOT/docker"
+DOCKER_DIR="$PROJECT_ROOT"
 
 # 备份目录配置
 BACKUP_BASE_DIR="${AGENTOS_BACKUP_DIR:-/data/backups/agentos}"

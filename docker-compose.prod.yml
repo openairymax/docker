@@ -381,7 +381,7 @@ services:
     tmpfs:
       - /tmp:size=64M,mode=1777
       - /run:size=16M,mode=1755
-      - /var/lib/grafana:size=128M,mode=1777
+      - /var/run/postgresql:size=16M,mode=1777
     cap_drop:
       - ALL
 
