@@ -484,6 +484,7 @@ services:
 
     volumes:
       - openlab-staging-data:/app/data:rw
+      - openlab-ssl-certs:/etc/nginx/ssl:ro
 
     environment:
       OPENLAB_DEBUG: false

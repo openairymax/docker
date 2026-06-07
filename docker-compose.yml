@@ -33,7 +33,7 @@ services:
       - AGENTOS_ENV=development
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,7 +73,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "market", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -113,7 +113,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "monit", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -151,7 +151,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "notify", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -191,7 +191,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "observe", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -229,7 +229,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "sched", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -267,7 +267,7 @@ services:
       - AGENTOS_KERNEL_HOST=kernel
       - AGENTOS_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "agentos-cli", "tool", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
