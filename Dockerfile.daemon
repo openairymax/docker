@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentOS Daemon Dockerfile - 生产级构建
-# 版本: 0.0.5 (Production-Ready)
+# 版本: 0.1.0 (Production-Ready)
 # 最后更新: 2026-04-15
 #
 # 🎯 生产级特性:
@@ -39,6 +39,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # 数据格式库
     libyaml-dev=0.2.5-7build2 \
     libcjson-dev=1.7.15-1build1 \
+    libcurl4-openssl-dev=8.5.0-1ubuntu3 \
+    libsqlite3-dev=3.45.1-1ubuntu2 \
+    libmicrohttpd-dev=1.0.1-4build1 \
+    libwebsockets-dev=4.3.3-1.1build1 \
     libpq-dev=16.4-1ubuntu1 \
     # 包管理
     pkg-config=1.8.1-1ubuntu2 \
@@ -50,8 +54,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制守护进程源码和 Python SDK
-COPY AgentOS/agentos/daemon/ ./agentos/daemon/
-COPY AgentOS/agentos/toolkit/python/ ./agentos/toolkit/python/
+COPY AgentOS/agentos/ ./agentos/
+COPY AgentOS/CMakeLists.txt ./
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
@@ -65,14 +69,9 @@ RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0
     && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
 # 编译 C/C++ 组件并清理缓存
-RUN if [ -f CMakeLists.txt ]; then \
-        cmake . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DCMAKE_C_FLAGS="-O2" \
-            -DCMAKE_CXX_FLAGS="-O2" \
-        && cmake --build . --parallel "$(nproc)" \
-        && cmake --install . ; \
-    fi \
+RUN cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build ./build --parallel "$(nproc)" \
+    && cmake --install ./build \
     && find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
     && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
@@ -86,9 +85,9 @@ FROM ubuntu:24.04 AS runtime
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Daemon Services v2.0" \
+      org.opencontainers.image.title="AgentOS Daemon Services v0.1.0" \
       org.opencontainers.image.description="AgentOS守护进程服务层 (生产级)" \
-      org.opencontainers.image.version="2.0.0" \
+      org.opencontainers.image.version="0.1.0" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.vendor="SPHARX Ltd."
 
@@ -106,6 +105,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3=3.0.2-0ubuntu17.4 \
     libyaml-0-2=0.2.5-7build2 \
     libcjson4=1.7.15-1build1 \
+    libcurl4=8.5.0-1ubuntu3 \
+    libsqlite3-0=3.45.1-1ubuntu2 \
+    libmicrohttpd12=1.0.1-4build1 \
+    libwebsockets19=4.3.3-1.1build1 \
     libpq5=16.4-1ubuntu1 \
     procps=2:4.0.4-4ubuntu2 \
     tzdata=2023c-1 \
@@ -170,7 +173,7 @@ ENV GATEWAY_ENABLED=true \
     GATEWAY_ADMIN_PORT=18790
 
 # 覆盖启动命令，启动 Gateway + Supervisor
-CMD ["bash", "-c", "supervisord -c /etc/supervisor/supervisord.conf & sleep 2 && exec /app/bin/gateway-server --config /app/config/gateway.yaml"]
+CMD ["bash", "-c", "supervisord -c /etc/supervisor/supervisord.conf"]
 
 # =============================================================================
 # 阶段4: 调试版本 (Debug)

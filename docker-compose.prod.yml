@@ -69,7 +69,7 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-2.0.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.1.0}
     hostname: agentos-kernel
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
@@ -181,7 +181,7 @@ services:
   #
   # 📌 关键说明:
   # - 所有外部流量必须通过 Gateway 进入（单一入口原则）
-  # - 支持 Python SDK v0.0.4 默认端口 18789
+  # - 支持 Python SDK v0.1.0 default port 18789
   # - 内置 JWT 认证、速率限制、CORS、IP 黑名单
   # - 连接池管理到 Kernel 后端（负载均衡 + 熔断器）
   # ===========================================================================
@@ -190,7 +190,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-2.0.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.1.0}
     hostname: agentos-gateway
     restart: always
 
@@ -381,7 +381,7 @@ services:
     tmpfs:
       - /tmp:size=64M,mode=1777
       - /run:size=16M,mode=1755
-      - /var/lib/grafana:size=128M,mode=1777
+      - /var/run/postgresql:size=16M,mode=1777
     cap_drop:
       - ALL
 
@@ -493,7 +493,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production                     # 使用 production target
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-2.0.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.1.0}
     container_name: agentos-openlab-prod
     hostname: agentos-openlab
     restart: always

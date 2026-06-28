@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # AgentOS 自动化备份与恢复脚本 (Backup & Recovery Script)
-# 版本：2.0.1 (Production-Grade)
+# 版本：0.1.0 (Production-Grade)
 # 用途：定期备份 AgentOS 所有持久化数据，支持快速恢复
 #
 # 使用方法:
@@ -43,7 +43,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DOCKER_DIR="$PROJECT_ROOT/docker"
+DOCKER_DIR="$PROJECT_ROOT"
 
 # 备份目录配置
 BACKUP_BASE_DIR="${AGENTOS_BACKUP_DIR:-/data/backups/agentos}"
@@ -80,7 +80,7 @@ BACKUP_FILES_COUNT=0
 # -----------------------------------------------------------------------------
 usage() {
     cat <<EOF
-AgentOS Backup & Recovery Script v2.0.0
+AgentOS Backup & Recovery Script v0.1.0
 
 Usage: $0 <ACTION> [OPTIONS]
 
@@ -351,7 +351,7 @@ generate_manifest() {
     
     cat > "$manifest_file" <<EOF
 {
-    "version": "2.0.0",
+    "version": "0.1.0",
     "environment": "$ENVIRONMENT",
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "hostname": "$(hostname)",

@@ -57,8 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **README.md** - Updated to v0.0.4 with comprehensive documentation
-- **Alert Rules** - Version bumped to 0.0.4 with enhanced thresholds
+- **README.md** - Updated to v0.1.0 with comprehensive documentation
+- **Alert Rules** - Version bumped to 0.1.0 with enhanced thresholds
 
 ### Security
 

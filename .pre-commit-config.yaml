@@ -1,0 +1,80 @@
+# Pre-Commit Hooks for Docker
+# 安装: pip install pre-commit && pre-commit install
+# 运行: pre-commit run --all-files
+# 文档: https://pre-commit.com
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: detect-private-key
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: forbid-submodules
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.2
+    hooks:
+      - id: shellcheck
+        files: \.(sh|bash)$
+
+  - repo: local
+    hooks:
+      - id: hadolint
+        name: Dockerfile 检查 (hadolint)
+        entry: bash -c 'for f in "$@"; do hadolint "$f" || exit 1; done' --
+        language: system
+        files: Dockerfile.*|Dockerfile$
+        pass_filenames: true
+
+      - id: docker-compose-check
+        name: docker-compose 配置检查
+        entry: bash -c 'docker compose -f "$1" config --quiet 2>&1 || true' --
+        language: system
+        files: docker-compose.*\.yml$
+        pass_filenames: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: \.(png|jpg|jpeg|gif|ico|pdf|zip|tar|gz|lock)$
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: relaxed, rules: {line-length: {max: 200}}}']
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.8.0
+    hooks:
+      - id: prettier
+        types: [markdown, yaml]
+        args: [--prose-wrap=always, --print-width=100]
+
+  - repo: https://github.com/sirosen/check-jsonschema
+    rev: 0.23.3
+    hooks:
+      - id: check-github-workflows
+
+exclude: ^(vendor/|node_modules/|\.venv/)
+
+default_language_version:
+  python: python3
+
+default_stages: [commit, push]
+
+color: true
+verbose: true

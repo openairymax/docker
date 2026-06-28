@@ -1,6 +1,6 @@
 # AgentOS Docker 部署指南
 
-**版本**: 0.0.4  
+**版本**: 0.1.0  
 **最后更新**: 2026-04-23
 
 ---
@@ -376,7 +376,7 @@ services:
 brew install aquasecurity/trivy/trivy
 
 # 扫描镜像
-trivy image spharx/agentos-kernel:0.0.4
+trivy image spharx/agentos-kernel:0.1.0
 
 # 扫描文件系统
 trivy fs --severity CRITICAL,HIGH .
