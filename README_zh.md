@@ -10,7 +10,7 @@ Powered by OpenAirymax
 
 [![AtomGit](https://atomgit.com/openairymax/docker/star/badge.svg)](https://atomgit.com/openairymax/docker)
 
-[![Version](https://img.shields.io/badge/version-0.0.4-5a6b7e)](https://atomgit.com/openairymax/docker)
+[![Version](https://img.shields.io/badge/version-0.1.0-5a6b7e)](https://atomgit.com/openairymax/docker)
 [![License](https://img.shields.io/badge/license-Proprietary-4a90d9)](https://atomgit.com/openairymax/docker/blob/main/LICENSE)
 
 [![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker\&logoColor=white)](https://www.docker.com)
@@ -67,7 +67,7 @@ AgentOS Docker 是 **AgentOS 智能体操作系统** 的官方容器化部署方
 | --------------- | --------- | ---------------------------- | ------------------ |
 | AgentOS Kernel  | v2.0.0    | 18080 (IPC) / 9090 (Metrics) | 微内核核心              |
 | AgentOS Gateway | v2.0.0    | 18789 (API) / 18790 (Admin)  | 三协议网关              |
-| Python SDK      | v0.0.4    | 默认连接 18789                   | `agentos` Python 包 |
+| Python SDK      | v0.1.0    | 默认连接 18789                   | `agentos` Python 包 |
 | PostgreSQL      | 15-alpine | 5432 (内网)                    | 关系型数据库             |
 | Redis           | 7-alpine  | 6379 (内网)                    | 内存缓存               |
 | Prometheus      | v2.45.0   | 9091 (偏移)                    | 监控引擎               |
@@ -443,5 +443,5 @@ docker/
 
 <p align="center">
   <strong>Made with ❤️ by SPHARX Platform Team</strong><br>
-  <em>Last Updated: 2026-04-23 | Version: 0.0.4</em>
+  <em>Last Updated: 2026-04-23 | Version: 0.1.0</em>
 </p>

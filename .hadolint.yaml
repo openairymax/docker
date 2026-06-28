@@ -1,0 +1,49 @@
+ignored:
+  - DL3008
+  - DL3013
+  - DL4006
+  - SC2086
+no-fail:
+  - DL3003
+  - DL3059
+override:
+  error:
+    - DL3001
+    - DL3002
+    - DL3006
+    - DL3007
+    - DL3008
+    - DL3009
+    - DL3010
+    - DL3013
+    - DL3046
+    - DL3059
+  warning:
+    - DL3005
+    - DL3020
+    - DL3032
+    - DL3033
+    - DL3041
+    - DL4001
+    - DL4006
+    - SC2016
+    - SC2034
+    - SC2046
+    - SC2068
+    - SC2086
+  info:
+    - DL4000
+label-schema:
+  org.opencontainers.image.authors: text
+  org.opencontainers.image.created: rfc3339
+  org.opencontainers.image.description: text
+  org.opencontainers.image.documentation: url
+  org.opencontainers.image.licenses: spdx
+  org.opencontainers.image.ref.name: text
+  org.opencontainers.image.revision: text
+  org.opencontainers.image.source: url
+  org.opencontainers.image.title: text
+  org.opencontainers.image.url: url
+  org.opencontainers.image.vendor: text
+  org.opencontainers.image.version: semver
+strict-labels: true
