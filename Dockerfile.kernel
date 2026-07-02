@@ -70,10 +70,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制源代码和构建配置
-COPY AgentOS/ ./AgentOS/
+COPY AgentRT/ ./AgentRT/
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
-RUN cmake -S ./AgentOS -B . \
+RUN cmake -S ./AgentRT -B . \
     -G Ninja \
     -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DBUILD_TESTS=${ENABLE_TESTS} \
@@ -106,16 +106,16 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # 元数据标签（符合 OCI Image Spec）
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Kernel v0.1.0" \
+      org.opencontainers.image.title="AgentOS Kernel v0.1.1" \
       org.opencontainers.image.description="AgentOS智能体操作系统内核层 (生产级)" \
-      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.version="0.1.1" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.documentation="https://docs.spharx.cn/agentos/docker" \
       org.opencontainers.image.vendor="SPHARX Ltd." \
       org.opencontainers.image.licenses="Proprietary" \
-      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.1.0" \
+      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.1.1" \
       org.opencontainers.image.base.digest="" \
-      org.opencontainers.image.created="2026-04-15T00:00:00Z"
+      org.opencontainers.image.created="2026-07-02T00:00:00Z"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
