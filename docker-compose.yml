@@ -1,7 +1,7 @@
 # =============================================================================
 # AgentOS Docker Compose - 开发环境
-# 版本: 0.2.0
-# 最后更新: 2026-06-03
+# 版本: 0.1.1
+# 最后更新: 2026-07-02
 #
 # 使用方法:
 #   docker compose --env-file .env.dev up -d
@@ -20,7 +20,7 @@ services:
       args:
         BUILD_TYPE: Debug
         ENABLE_TESTS: ON
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-kernel-dev
     hostname: agentos-kernel
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-market_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-market_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-market_d-dev
     hostname: agentos-market
     restart: unless-stopped
@@ -99,7 +99,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-monit_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-monit_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-monit_d-dev
     hostname: agentos-monit
     restart: unless-stopped
@@ -139,7 +139,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-notify_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-notify_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-notify_d-dev
     hostname: agentos-notify
     restart: unless-stopped
@@ -177,7 +177,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-observe_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-observe_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-observe_d-dev
     hostname: agentos-observe
     restart: unless-stopped
@@ -217,7 +217,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-sched_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-sched_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-sched_d-dev
     hostname: agentos-sched
     restart: unless-stopped
@@ -255,7 +255,7 @@ services:
       target: runtime
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-tool_d:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-tool_d:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-tool_d-dev
     hostname: agentos-tool
     restart: unless-stopped
@@ -293,7 +293,7 @@ services:
       target: gateway
       args:
         BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.2.0}-dev
+    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.1.1}-dev
     container_name: agentos-gateway-dev
     hostname: agentos-gateway
     restart: unless-stopped

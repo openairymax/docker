@@ -54,8 +54,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制守护进程源码和 Python SDK
-COPY AgentOS/agentos/ ./agentos/
-COPY AgentOS/CMakeLists.txt ./
+COPY AgentRT/agentos/ ./agentos/
+COPY AgentRT/CMakeLists.txt ./
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
@@ -85,9 +85,9 @@ FROM ubuntu:24.04 AS runtime
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Daemon Services v0.1.0" \
+      org.opencontainers.image.title="AgentOS Daemon Services v0.1.1" \
       org.opencontainers.image.description="AgentOS守护进程服务层 (生产级)" \
-      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.version="0.1.1" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
       org.opencontainers.image.vendor="SPHARX Ltd."
 
