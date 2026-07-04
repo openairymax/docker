@@ -11,7 +11,7 @@ Powered by OpenAirymax
 [![AtomGit](https://atomgit.com/openairymax/docker/star/badge.svg)](https://atomgit.com/openairymax/docker)
 
 [![Version](https://img.shields.io/badge/version-0.1.0-5a6b7e)](https://atomgit.com/openairymax/docker)
-[![License](https://img.shields.io/badge/license-Proprietary-4a90d9)](https://atomgit.com/openairymax/docker/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0+Apache--2.0-4a90d9)](LICENSE)
 
 [![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?logo=docker\&logoColor=white)](https://www.docker.com)
 [![Compose](https://img.shields.io/badge/Docker%20Compose-2.20+-2496ED?logo=docker\&logoColor=white)](https://docs.docker.com/compose/)
@@ -437,7 +437,7 @@ docker/
 
 ## 📄 许可证
 
-本项目采用 **Proprietary License** (专有许可证)。详见 [LICENSE](../LICENSE) 文件。
+本项目采用 **AGPL v3 + Apache 2.0** 双许可证（SPDX: `AGPL-3.0-or-later OR Apache-2.0`）。详见 [LICENSE](LICENSE) 文件。版权归属人：SPHARX Ltd.
 
 ***
 
