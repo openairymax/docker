@@ -178,6 +178,7 @@ Desktop.ini
 .pytest_cache/
 
 # Rust 构建产物补全
+# 本目录不含 Rust 源码，此规则为占位防护
 Cargo.lock
 
 # Go 测试二进制补全
