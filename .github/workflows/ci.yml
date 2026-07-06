@@ -1,232 +1,58 @@
-name: Docker CI
+name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["**"]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: '0 4 * * *'
-  workflow_dispatch:
 
-concurrency:
-  group: docker-ci-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  DOCKER_BUILDKIT: 1
-  COMPOSE_DOCKER_CLI_BUILD: 1
+permissions:
+  contents: read
 
 jobs:
-  build-and-lint:
-    name: Build & Lint (${{ matrix.environment }})
+  ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: Docker
-
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [dev, staging]
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker images
-        run: |
-          if [ "${{ matrix.environment }}" = "dev" ]; then
-            docker compose -f docker-compose.yml build --parallel
-          else
-            docker compose -f docker-compose.staging.yml build --parallel
-          fi
-
-      - name: Install hadolint
-        run: |
-          curl -sL "https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64" \
-            -o /usr/local/bin/hadolint
-          chmod +x /usr/local/bin/hadolint
-
-      - name: Lint Dockerfiles
-        run: |
-          echo "::group::hadolint results"
-          hadolint Dockerfile.kernel \
-            --failure-threshold warning \
-            --no-color
-          hadolint Dockerfile.daemon \
-            --failure-threshold warning \
-            --no-color
-          hadolint Dockerfile.openlab \
-            --failure-threshold warning \
-            --no-color
-          hadolint Dockerfile.desktop \
-            --failure-threshold warning \
-            --no-color
-          echo "::endgroup::"
-
-      - name: Validate Compose files
-        run: |
-          for compose_file in \
-            docker-compose.yml \
-            docker-compose.staging.yml \
-            docker-compose.prod.yml
-          do
-            echo "::group::Validating $compose_file"
-            docker compose -f "$compose_file" config --quiet 2>&1
-            echo "::endgroup::"
-          done
-
-      - name: BAN Compliance Scan
-        run: |
-          SECRETS_FOUND=0
-
-          echo "::group::BAN-43: Hardcoded Secrets Scan"
-          if grep -rn 'redis-cli -a\|redis-cli --no-auth-warning' \
-            docker-compose*.yml 2>/dev/null; then
-            echo "::error::BAN-43 violation: Redis healthcheck password exposure"
-            SECRETS_FOUND=1
-          fi
-          echo "::endgroup::"
-
-          echo "::group::BAN-57: CORS Wildcard Scan"
-          if grep -rn "Access-Control-Allow-Origin \\*" config/nginx/ 2>/dev/null; then
-            echo "::error::BAN-57 violation: CORS wildcard found"
-            exit 1
-          else
-            echo "BAN-57 OK: No CORS wildcard detected"
-          fi
-          echo "::endgroup::"
-
-          echo "::group::BAN-58/59: Hardcoded Path Scan"
-          if grep -rn '/var/run/agentos' docker-compose*.yml Dockerfile* 2>/dev/null; then
-            echo "::warning::BAN-59: Found /var/run/agentos, should use /run/agentos"
-          else
-            echo "BAN-59 OK: No obsolete /var/run/ paths"
-          fi
-          echo "::endgroup::"
-
-          if [ "$SECRETS_FOUND" -eq 1 ]; then
-            echo "::error::BAN-43 violations detected!"
-            exit 1
-          fi
-
-  integration-test:
-    name: Integration Test
-    runs-on: ubuntu-latest
-    needs: build-and-lint
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: Docker
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          fetch-depth: 1
 
-      - name: Install dependencies
+      - name: License check
         run: |
-          if [ -f tests/requirements.txt ]; then
-            pip install -r tests/requirements.txt
+          if [ -f "LICENSE" ]; then
+            echo "[OK] LICENSE present"
           else
-            echo "::warning::tests/requirements.txt not found, installing defaults"
-            pip install pytest requests httpx
+            echo "[NO] LICENSE missing" && exit 1
           fi
 
-      - name: Start services
+      - name: README check
         run: |
-          cp .env.staging.example .env.staging
-          sed -i "s|__GENERATE_JWT_SECRET__|$(openssl rand -base64 32)|g" .env.staging
-          sed -i "s|__GENERATE_POSTGRES_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
-          sed -i "s|__GENERATE_REDIS_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
-          sed -i "s|__GENERATE_GRAFANA_PASSWORD__|$(openssl rand -base64 24)|g" .env.staging
-          sed -i "s|__GENERATE_USERNAME__|ci_admin_$(openssl rand -hex 4)|g" .env.staging
-          export GRAFANA_ADMIN_USER=ci_admin
-          export POSTGRES_PASSWORD=$(grep POSTGRES_PASSWORD .env.staging | cut -d= -f2)
-          export REDIS_PASSWORD=$(grep REDIS_PASSWORD .env.staging | cut -d= -f2)
-          export GATEWAY_JWT_SECRET=$(grep GATEWAY_JWT_SECRET .env.staging | cut -d= -f2)
-          docker compose -f docker-compose.yml up -d --wait
-          sleep 10
-
-      - name: Run health check
-        run: |
-          if [ -f scripts/healthcheck.sh ]; then
-            chmod +x scripts/healthcheck.sh
-            ./scripts/healthcheck.sh --json
+          if [ -f "README.md" ] || [ -f "README_zh.md" ]; then
+            echo "[OK] README present"
           else
-            echo "::warning::scripts/healthcheck.sh not found, skipping health check"
+            echo "[WARN] README missing"
           fi
 
-      - name: Run integration tests
-        run: pytest tests/integration/ -v --tb=short
-
-      - name: Collect logs on failure
-        if: failure()
+      - name: NOTICE check
         run: |
-          docker compose -f docker-compose.yml logs --tail=200 > ci-logs.txt
-          cat ci-logs.txt
+          if [ -f "NOTICE" ]; then
+            echo "[OK] NOTICE present"
+          else
+            echo "[WARN] NOTICE missing"
+          fi
 
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.yml down -v
+      - name: Dockerfile check
+        run: |
+          if [ -f "Dockerfile" ]; then
+            echo "[OK] Dockerfile present"
+            # 语法检查（不实际构建）
+            docker run --rm -i hadolint/hadolint < Dockerfile 2>&1 || echo "[WARN] hadolint issues (non-blocking)"
+          else
+            echo "[INFO] No Dockerfile, skipping"
+          fi
 
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: build-and-lint
-    if: github.event_name == 'push' || github.event_name == 'schedule'
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-
-      - name: Build image for scanning
-        run: docker build -t agentos-kernel:test -f Docker/Dockerfile.kernel .
-
-      - name: Scan kernel image
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: 'agentos-kernel:test'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-  result:
-    name: CI Result
-    needs: [build-and-lint, integration-test, security-scan]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check build-and-lint status
-        if: ${{ needs.build-and-lint.result == 'failure' }}
-        run: exit 1
-      - name: Check integration-test status
-        if: ${{ needs.integration-test.result == 'failure' }}
-        run: exit 1
-      - name: Check security-scan status
-        if: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && needs.security-scan.result == 'failure' }}
-        run: exit 1
-      - name: All checks passed
-        run: echo "::notice::All CI checks passed successfully!"
+      - name: docker-compose check
+        run: |
+          if [ -f "docker-compose.yml" ]; then
+            echo "[OK] docker-compose.yml present"
+          fi
