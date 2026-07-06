@@ -3,7 +3,7 @@
 # Airymax Docker 部署
 
 > Airymax AI 智能体运行时平台的官方容器化部署方案 —— 多阶段、安全加固的
-> 镜像，配合 Docker Compose 编排覆盖开发、预发布与生产环境。
+> OCI 镜像，配合 Docker Compose 编排覆盖开发、预发布与生产环境。
 
 **语言:** [English](README.md) | 简体中文
 
@@ -21,56 +21,91 @@ Powered by OpenAirymax
 
 ---
 
-## 1. 模块定位
+## 概述
 
 **Docker 模块**是 Airymax 平台的官方容器化部署层。它将 AgentRT 运行时、守护进程服务、
 网关、OpenLab 与桌面 Web 前端打包为可重现的 OCI 镜像，并提供三套 Docker Compose 编排
-（开发 / 预发布 / 生产），将它们与 PostgreSQL、Redis 及完整监控栈串联起来。
+（开发 / 预发布 / 生产），将它们与 PostgreSQL、Redis 及完整的 Prometheus + Grafana +
+AlertManager 可观测性栈串联起来。它是
+[`products/`](https://atomgit.com/openairymax/products) 管理仓下三个叶子仓之一，
+另两个为 `desktop`（个人客户端）和 `memoryrovol`（商业记忆提供者）。
 
-- **角色**：[`products/`](https://atomgit.com/openairymax/products) 管理仓下三个叶子仓之一，
-  另两个为 `desktop`（个人客户端）和 `memoryrovol`（商业记忆提供者）。
-- **受众**：需要在生产环境中运行、扩容和观测 Airymax 的 DevOps 工程师、SRE 与企业运维人员。
-- **范围**：四个多阶段 Dockerfile、三套 Compose 编排、CIS Benchmark 对齐的安全基线
-  （非 root `agentos:1000` 用户、`read_only` 文件系统、`seccomp` 配置、`cap_drop: ALL`、
-  禁止提权）、结构化 JSON 日志、备份恢复工具，以及 Prometheus + Grafana + AlertManager 可观测性栈。
+本模块提供 **四个多阶段 Dockerfile** —— `Dockerfile.kernel`、`Dockerfile.daemon`、
+`Dockerfile.openlab` 和 `Dockerfile.desktop` —— 每个产出多个命名构建 target
+（builder / runtime / gateway / debug / production / development）。Compose 编排将这些镜像组装为
+完整的运行时拓扑：一个微内核容器前置六个 Supervisor 管理的守护进程
+（`market_d`、`monit_d`、`notify_d`、`observe_d`、`sched_d`、`tool_d`）与一个三协议
+（HTTP / WebSocket / stdio）网关，由 PostgreSQL 提供关系存储、Redis 提供 IPC 缓存、
+会话与限流。
 
-### 上游 / 下游
+部署在所有生产服务上实现了 CIS Docker Benchmark 1.5+ 对齐的安全基线：非 root
+`agentos:1000` 用户、`read_only` 文件系统、`config/seccomp-profile.json` 系统调用白名单、
+`cap_drop: ALL`、`no-new-privileges: true`、结构化 JSON 日志轮转、每个服务的分层 HEALTHCHECK
+探针，以及 `${VAR:?error}` 强制校验使栈在缺失任何密钥时立即失败。CI 每次构建均运行 Trivy 扫描。
+本模块面向需要在生产环境中运行、扩容和观测 Airymax 的 DevOps 工程师、SRE 与企业运维人员。
+
+## 目录结构
 
 ```
-   ┌─────────────────────────────────┐
-   │  AgentRT 运行时（sdk/agentrt）  │
-   │  ecosystem/manager 配置         │
-   └────────────────┬────────────────┘
-                    │ 构建时 COPY 源码
-                    ▼
-   ┌─────────────────────────────────┐
-   │     products/docker（镜像）     │
-   │   Dockerfile.kernel             │
-   │   Dockerfile.daemon             │
-   │   Dockerfile.openlab            │
-   │   Dockerfile.desktop            │
-   └────────────────┬────────────────┘
-                    │ docker compose up
-                    ▼
-   ┌─────────────────────────────────┐
-   │  运维人员 / 企业部署            │
-   │  （开发 / 预发布 / 生产）       │
-   └─────────────────────────────────┘
+docker/
+├── Dockerfile.kernel          # Kernel 镜像（ubuntu:24.04 多阶段）
+├── Dockerfile.daemon          # Daemon / Gateway 镜像（supervisord 管理）
+├── Dockerfile.openlab         # OpenLab 镜像（python:3.12-slim + nginx）
+├── Dockerfile.desktop         # Desktop Web 镜像（node:20 + nginx:1.27）
+│
+├── docker-compose.yml         # 开发栈
+├── docker-compose.staging.yml # 预发布栈（与生产 1:1 镜像）
+├── docker-compose.prod.yml    # 生产栈（安全加固）
+│
+├── .env.example                       # 开发环境变量模板
+├── .env.staging.example               # 预发布环境变量模板
+├── .env.production.example            # 生产环境变量模板（含密钥生成命令）
+│
+├── config/                            # 运行时配置
+│   ├── gateway.yaml                   #   网关：协议、限流、JWT、上游
+│   ├── seccomp-profile.json           #   seccomp 系统调用白名单（CIS 5.7）
+│   ├── supervisor/                    #   supervisord 主配置 + 各守护进程 conf.d/
+│   ├── nginx/                         #   反向代理 + desktop/openlab 静态配置
+│   │   ├── openlab.conf  desktop.conf  agentos-proxy.conf
+│   └── logging/                       #   Fluent Bit 日志聚合模板
+│       └── fluent-bit.conf
+│
+├── monitoring/                        # 可观测性栈
+│   ├── prometheus.yml                 #   抓取配置（kernel/gateway/postgres/redis）
+│   ├── alertmanager.yml               #   告警路由（PagerDuty/Slack/Email）
+│   ├── rules/                         #   告警规则文件
+│   │   ├── kernel.yml  agentos_alerts.yml
+│   └── grafana/                       #   自动 provisioning 的数据源与仪表盘
+│
+├── scripts/                           # 运维工具
+│   ├── quick-start.sh                 #   交互式启动器（环境检查 + 菜单）
+│   ├── install.sh                     #   一键安装脚本
+│   ├── healthcheck.sh                 #   多层健康探针（text/JSON）
+│   ├── backup.sh                      #   备份 / 恢复 / 校验 / 列表（GPG + SHA256）
+│   ├── generate-secrets.sh            #   强随机密钥生成器
+│   ├── harden.sh                      #   安全加固执行器
+│   ├── openlab-entrypoint.sh          #   OpenLab 容器入口
+│   └── verify-build.sh                #   构建后验证
+│
+├── secrets/                           # Docker Secrets 模板与指南
+├── tests/integration/                 # 集成测试套件（test_services.py）
+├── .github/                           # CI 工作流（构建 → 扫描 → 测试 → 发布）
+├── .trivy.yml                         # Trivy 漏洞扫描策略
+├── .hadolint.yaml                     # Dockerfile linter 配置
+├── .dockerignore
+│
+├── DEPLOYMENT.md                      # 分步部署指引
+├── CHANGELOG.md                       # 发布历史
+├── release.json                       # 发布元数据
+├── LICENSE                            # AGPL-3.0 + Apache-2.0 双许可证全文
+├── NOTICE                             # 版权与第三方声明
+├── README.md                          # 英文版
+└── README_zh.md                       # 本文件
 ```
 
-- **上游**：
-  - `AgentRT/` 运行时源码树（kernel + daemons + gateway + OpenLab）。
-  - `ecosystem/manager/` 配置默认值，通过 `config/` 消费。
-  - `products/desktop` 源码被 `Dockerfile.desktop` 消费以构建 Web 前端镜像
-    （纯 Vite 构建，不含 Tauri）。
-- **下游**：
-  - 运行产出镜像的运维 / 企业部署。
-  - `products/desktop` 终端用户可让桌面客户端与本地启动的 `docker compose` 栈并行运行，
-    作为网关后端。
+## 功能 / 组件
 
-## 2. 服务与镜像
-
-本模块构建四个 OCI 镜像，每个镜像包含多个命名构建 target：
+### 镜像与构建 Target
 
 | 镜像 | Dockerfile | Target | 端口 | 用途 |
 |------|-----------|--------|------|------|
@@ -107,62 +142,7 @@ Powered by OpenAirymax
 | 9091 | Prometheus | 受限 | 监控 UI（生产仅 VPN） |
 | 3000 | Grafana | 受限 | 仪表盘（生产仅 VPN） |
 
-## 3. 目录结构
-
-```
-docker/
-├── Dockerfile.kernel          # Kernel 镜像（ubuntu:24.04 多阶段）
-├── Dockerfile.daemon          # Daemon / Gateway 镜像（supervisord 管理）
-├── Dockerfile.openlab         # OpenLab 镜像（python:3.12-slim + nginx）
-├── Dockerfile.desktop         # Desktop Web 镜像（node:20 + nginx:1.27）
-│
-├── docker-compose.yml         # 开发栈
-├── docker-compose.staging.yml # 预发布栈（与生产 1:1 镜像）
-├── docker-compose.prod.yml    # 生产栈（安全加固）
-│
-├── .env.example                       # 开发环境变量模板
-├── .env.staging.example               # 预发布环境变量模板
-├── .env.production.example            # 生产环境变量模板（含密钥生成命令）
-│
-├── config/                            # 运行时配置
-│   ├── gateway.yaml                   #   网关：协议、限流、JWT、上游
-│   ├── seccomp-profile.json           #   seccomp 系统调用白名单（CIS 5.7）
-│   ├── supervisor/                    #   supervisord 主配置 + 各守护进程 conf.d/
-│   ├── nginx/                         #   反向代理 + desktop/openlab 静态配置
-│   └── logging/                       #   Fluent Bit 日志聚合模板
-│
-├── monitoring/                        # 可观测性栈
-│   ├── prometheus.yml                 #   抓取配置（kernel/gateway/postgres/redis）
-│   ├── alertmanager.yml               #   告警路由（PagerDuty/Slack/Email）
-│   ├── rules/agentos_alerts.yml       #   15+ 条生产级告警规则
-│   └── grafana/                       #   自动 provisioning 的数据源与仪表盘
-│
-├── scripts/                           # 运维工具
-│   ├── quick-start.sh                 #   交互式启动器（环境检查 + 菜单）
-│   ├── install.sh                     #   一键安装脚本
-│   ├── healthcheck.sh                 #   多层健康探针（text/JSON）
-│   ├── backup.sh                      #   备份 / 恢复 / 校验 / 列表（GPG + SHA256）
-│   ├── generate-secrets.sh            #   强随机密钥生成器
-│   ├── harden.sh                      #   安全加固执行器
-│   ├── openlab-entrypoint.sh          #   OpenLab 容器入口
-│   └── verify-build.sh                #   构建后验证
-│
-├── secrets/                           # Docker Secrets 模板与指南
-├── tests/integration/                 # 集成测试套件
-├── .github/                           # CI 工作流（构建 → 扫描 → 测试 → 发布）
-├── .trivy.yml                         # Trivy 漏洞扫描策略
-├── .hadolint.yaml                     # Dockerfile linter 配置
-│
-├── DEPLOYMENT.md                      # 分步部署指引
-├── CHANGELOG.md                       # 发布历史
-├── release.json                       # 发布元数据
-├── LICENSE                            # AGPL-3.0 + Apache-2.0 双许可证全文
-├── NOTICE                             # 版权与第三方声明
-├── README.md                          # 英文版
-└── README_zh.md                       # 本文件
-```
-
-## 4. 技术栈
+### 技术栈
 
 | 层次 | 技术 |
 |------|------|
@@ -176,7 +156,71 @@ docker/
 | 安全 | seccomp、cap_drop ALL、只读 FS、非 root `agentos:1000` |
 | CI/CD | GitHub Actions（Buildx 多架构 + Trivy 扫描 + SARIF） |
 
-## 5. 安装与使用
+### 安全基线（CIS Docker Benchmark 1.5+）
+
+| CIS | 控制项 | 实现方式 |
+|-----|--------|----------|
+| 4.1 | 受信任基础镜像 | 官方 `ubuntu:24.04`、`python:3.12-slim`、`nginx:1.27-alpine` |
+| 4.6 | HEALTHCHECK | 每个服务均有分层健康探针 |
+| 5.4 | Rootless 容器 | `USER agentos:1000`（UID/GID 1000，shell `/sbin/nologin`） |
+| 5.7 | seccomp | `config/seccomp-profile.json` 白名单 |
+| 5.9 | 只读文件系统 | 生产服务 `read_only: true` |
+| 5.10 | 禁用 suid/sgid | `cap_drop: ALL` |
+| 5.11 | 禁止获取新权限 | `no-new-privileges:true` |
+| 5.26 | 能力白名单 | 仅 `cap_add: NET_BIND_SERVICE` |
+| 5.29 | 日志驱动配置 | `json-file` + `max-size` + `max-file` 轮转 |
+
+密钥绝不硬编码：生产清单使用 `${VAR:?error}` 在缺失时立即失败，`secrets/` 提供 Docker Secrets 工作流文档。
+CI 在每次构建时运行 Trivy 扫描。
+
+## 上游依赖
+
+```
+   ┌─────────────────────────────────┐
+   │  AgentRT 运行时（sdk/agentrt）  │
+   │  ecosystem/manager 配置         │
+   └────────────────┬────────────────┘
+                    │ 构建时 COPY 源码
+                    ▼
+   ┌─────────────────────────────────┐
+   │     products/docker（镜像）     │
+   │   Dockerfile.kernel             │
+   │   Dockerfile.daemon             │
+   │   Dockerfile.openlab            │
+   │   Dockerfile.desktop            │
+   └────────────────┬────────────────┘
+                    │ docker compose up
+                    ▼
+   ┌─────────────────────────────────┐
+   │  运维人员 / 企业部署            │
+   │  （开发 / 预发布 / 生产）       │
+   └─────────────────────────────────┘
+```
+
+- **`AgentRT/` 运行时源码树** —— kernel + daemons + gateway + OpenLab 源码，
+  在镜像构建期被 `COPY` 进各 builder 阶段。构建上下文为伞仓根目录（`context: ..`），
+  因此四个 Dockerfile 直接读取运行时源码。
+- **`ecosystem/manager/` 配置默认值** —— 通过 `config/`（gateway.yaml、supervisor conf.d、
+  nginx、Fluent Bit）消费并烘焙进运行时镜像。
+- **`products/desktop` 源码** —— 被 `Dockerfile.desktop` 消费以构建 Web 前端镜像
+  （纯 Vite 构建，不含 Tauri 原生外壳）。构建时 `COPY Desktop/` 并执行 `npm ci && npm run build`。
+- **第三方 OCI 镜像** —— `ubuntu:24.04`、`python:3.12-slim`、`node:20-slim`、
+  `nginx:1.27-alpine`、`postgres:15-alpine`、`redis:7-alpine`、`prom/prometheus`、
+  `grafana/grafana`、`prom/alertmanager`。这些镜像保留其上游许可证。
+
+## 下游消费者
+
+- **运维 / 企业部署** —— 通过三套 Compose 清单在开发、预发布与生产环境中运行产出镜像。
+  支持栈扩容（如 `docker compose up --scale kernel=3`）。
+- **`products/desktop` 终端用户** —— 可让桌面客户端与本地启动的 `docker compose` 栈并行运行，
+    作为网关后端（默认 `localhost:18789`）。
+- **Airymax Hub 伞仓** —— 在 `feature/official-hubs-01` 分支上将本叶子仓作为 git 子模块固定，
+  用于协同发布。发布从 release 分支打 tag（见 `release.json` 与 `CHANGELOG.md`）。
+- **可选：`products/memoryrovol`** —— 商业记忆提供者可在构建期通过
+  `-DAGENTRT_WITH_MEMORYROVOL=ON` 链接进 AgentRT 运行时，再由本模块容器化，
+  在商业 EULA 下解锁 L3/L4 记忆能力。
+
+## 构建 / 安装
 
 ### 前置条件
 
@@ -292,43 +336,13 @@ make monitoring                                          # 启动 Prometheus + G
 完整指引（反向代理、TLS、备份调度、性能调优、Kompose 迁移 Kubernetes）详见
 [`DEPLOYMENT.md`](DEPLOYMENT.md)。
 
-## 6. 安全基线
-
-本模块实现 CIS Docker Benchmark 1.5+ 控制项：
-
-| CIS | 控制项 | 实现方式 |
-|-----|--------|----------|
-| 4.1 | 受信任基础镜像 | 官方 `ubuntu:24.04`、`python:3.12-slim`、`nginx:1.27-alpine` |
-| 4.6 | HEALTHCHECK | 每个服务均有分层健康探针 |
-| 5.4 | Rootless 容器 | `USER agentos:1000`（UID/GID 1000，shell `/sbin/nologin`） |
-| 5.7 | seccomp | `config/seccomp-profile.json` 白名单 |
-| 5.9 | 只读文件系统 | 生产服务 `read_only: true` |
-| 5.10 | 禁用 suid/sgid | `cap_drop: ALL` |
-| 5.11 | 禁止获取新权限 | `no-new-privileges:true` |
-| 5.26 | 能力白名单 | 仅 `cap_add: NET_BIND_SERVICE` |
-| 5.29 | 日志驱动配置 | `json-file` + `max-size` + `max-file` 轮转 |
-
-密钥绝不硬编码：生产清单使用 `${VAR:?error}` 在缺失时立即失败，`secrets/` 提供 Docker Secrets 工作流文档。
-CI 在每次构建时运行 Trivy 扫描。
-
-## 7. 分支策略
+### 分支策略
 
 - 叶子仓活跃开发分支：**`feature/official-hubs-01`**
 - 管理仓（`products/`）通过 git 子模块指针跟踪同一分支。
 - 发布从 release 分支打 tag（见 `release.json` 与 `CHANGELOG.md`）。
 
-## 8. 相关仓库
-
-| 仓库 | 链接 | 角色 |
-|------|------|------|
-| Airymax Hub（伞仓） | [atomgit.com/openairymax/airymaxhub](https://atomgit.com/openairymax/airymaxhub) | 顶层管理仓 |
-| Products（父仓） | [atomgit.com/openairymax/products](https://atomgit.com/openairymax/products) | 打包与分发层 |
-| AgentRT 运行时 / SDK | `sdk/agentrt`（位于 hub 内） | 上游运行时 —— 构建入镜像 |
-| 桌面客户端 | [atomgit.com/openairymax/desktop](https://atomgit.com/openairymax/desktop) | 源码被 `Dockerfile.desktop` 消费 |
-| MemoryRovol（商业） | [atomgit.com/spharx/memoryrovol](https://atomgit.com/spharx/memoryrovol) | 可选商业记忆提供者（运行时通过 `AGENTRT_WITH_MEMORYROVOL=ON` 链接） |
-| **Docker 部署（本仓）** | [atomgit.com/openairymax/docker](https://atomgit.com/openairymax/docker) | 容器化部署 |
-
-## 9. 许可证
+## 许可证
 
 本仓库采用双许可证：
 
@@ -344,4 +358,10 @@ AGPL-3.0-or-later OR Apache-2.0
 版权、商标与第三方组件声明详见 [`NOTICE`](NOTICE)。捆绑的第三方镜像
 （PostgreSQL、Redis、Prometheus、Grafana、Nginx、Ubuntu、Python、Node）保留其上游许可证。
 
-Copyright (c) 2025-2026 **SPHARX Ltd.** All Rights Reserved.
+```
+仓库:    git@atomgit.com:openairymax/docker.git
+分支:    feature/official-hubs-01
+SPDX:    AGPL-3.0-or-later OR Apache-2.0
+```
+
+Copyright (c) 2025-2026 SPHARX Ltd. All Rights Reserved.

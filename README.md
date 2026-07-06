@@ -3,8 +3,8 @@
 # Airymax Docker Deployment
 
 > Official containerized deployment for the Airymax AI Agent Runtime Platform —
-> multi-stage, security-hardened images plus Docker Compose orchestration for
-> development, staging and production.
+> multi-stage, security-hardened OCI images plus Docker Compose orchestration
+> for development, staging and production.
 
 **Language:** English | [简体中文](README_zh.md)
 
@@ -22,63 +22,99 @@ Powered by OpenAirymax
 
 ---
 
-## 1. Module Positioning
+## Overview
 
 The **Docker module** is the official containerized deployment layer for the
 Airymax platform. It packages the AgentRT runtime, daemon services, gateway,
 OpenLab and the desktop web frontend into reproducible OCI images, and provides
 three Docker Compose manifests (development / staging / production) that wire
-them together with PostgreSQL, Redis and a full monitoring stack.
+them together with PostgreSQL, Redis and a full Prometheus + Grafana +
+AlertManager observability stack. It is one of the three leaf repositories
+under the [`products/`](https://atomgit.com/openairymax/products) management
+repo, alongside `desktop` (personal client) and `memoryrovol` (commercial
+memory provider).
 
-- **Role**: One of the three leaf repositories under the
-  [`products/`](https://atomgit.com/openairymax/products) management repo,
-  alongside `desktop` (personal client) and `memoryrovol` (commercial memory
-  provider).
-- **Audience**: DevOps engineers, site reliability engineers and enterprise
-  operators who need to run, scale and observe Airymax in production.
-- **Scope**: Four multi-stage Dockerfiles, three Compose manifests, a CIS
-  Benchmark-aligned security baseline (non-root `agentos:1000` user,
-  `read_only` filesystems, `seccomp` profile, `cap_drop: ALL`, no privilege
-  escalation), structured JSON logging, backup/restore tooling and a
-  Prometheus + Grafana + AlertManager observability stack.
+The module ships **four multi-stage Dockerfiles** — `Dockerfile.kernel`,
+`Dockerfile.daemon`, `Dockerfile.openlab` and `Dockerfile.desktop` — each
+producing one or more named build targets (builder / runtime / gateway / debug
+/ production / development). The Compose manifests assemble these images into a
+complete runtime topology: a microkernel container fronts six
+supervisor-managed daemons (`market_d`, `monit_d`, `notify_d`, `observe_d`,
+`sched_d`, `tool_d`) and a three-protocol (HTTP / WebSocket / stdio) gateway,
+backed by PostgreSQL for relational storage and Redis for IPC cache,
+sessions and rate limiting.
 
-### Upstream / Downstream
+The deployment implements a CIS Docker Benchmark 1.5+ aligned security baseline
+across all production services: non-root `agentos:1000` user, `read_only`
+filesystems, `config/seccomp-profile.json` syscall whitelist, `cap_drop: ALL`,
+`no-new-privileges: true`, structured JSON log rotation, layered HEALTHCHECK
+probes on every service, and `${VAR:?error}` enforcement so the stack fails
+fast on any missing secret. Trivy scans run on every CI build. The module
+targets DevOps engineers, SREs and enterprise operators who need to run, scale
+and observe Airymax in production.
+
+## Directory Structure
 
 ```
-   ┌─────────────────────────────────┐
-   │  AgentRT runtime (sdk/agentrt)  │
-   │  ecosystem/manager configs      │
-   └────────────────┬────────────────┘
-                    │ COPY sources at build time
-                    ▼
-   ┌─────────────────────────────────┐
-   │     products/docker (images)    │
-   │   Dockerfile.kernel             │
-   │   Dockerfile.daemon             │
-   │   Dockerfile.openlab            │
-   │   Dockerfile.desktop            │
-   └────────────────┬────────────────┘
-                    │ docker compose up
-                    ▼
-   ┌─────────────────────────────────┐
-   │  Operators / Enterprise         │
-   │  (Dev, Staging, Production)     │
-   └─────────────────────────────────┘
+docker/
+├── Dockerfile.kernel          # Kernel image (ubuntu:24.04 multi-stage)
+├── Dockerfile.daemon          # Daemon / Gateway image (supervisord-managed)
+├── Dockerfile.openlab         # OpenLab image (python:3.12-slim + nginx)
+├── Dockerfile.desktop         # Desktop web image (node:20 + nginx:1.27)
+│
+├── docker-compose.yml         # Development stack
+├── docker-compose.staging.yml # Staging stack (1:1 mirror of production)
+├── docker-compose.prod.yml    # Production stack (security-hardened)
+│
+├── .env.example                       # Dev env template
+├── .env.staging.example               # Staging env template
+├── .env.production.example            # Production env template (with secret gen)
+│
+├── config/                            # Runtime configuration
+│   ├── gateway.yaml                   #   Gateway: protocols, rate limit, JWT, upstream
+│   ├── seccomp-profile.json           #   seccomp syscall whitelist (CIS 5.7)
+│   ├── supervisor/                    #   supervisord main + per-daemon conf.d/
+│   ├── nginx/                         #   Reverse proxy + desktop/openlab static conf
+│   │   ├── openlab.conf  desktop.conf  agentos-proxy.conf
+│   └── logging/                       #   Fluent Bit log aggregation templates
+│       └── fluent-bit.conf
+│
+├── monitoring/                        # Observability stack
+│   ├── prometheus.yml                 #   Scrape config (kernel/gateway/postgres/redis)
+│   ├── alertmanager.yml               #   Alert routing (PagerDuty/Slack/Email)
+│   ├── rules/                         #   Alert rule files
+│   │   ├── kernel.yml  agentos_alerts.yml
+│   └── grafana/                       #   Provisioned datasources + dashboards
+│
+├── scripts/                           # Operations tooling
+│   ├── quick-start.sh                 #   Interactive launcher (env check + menu)
+│   ├── install.sh                     #   One-shot installer
+│   ├── healthcheck.sh                 #   Multi-layer health probe (text/JSON)
+│   ├── backup.sh                      #   Backup / restore / verify / list (GPG + SHA256)
+│   ├── generate-secrets.sh            #   Strong random secret generator
+│   ├── harden.sh                      #   Security hardening appliance
+│   ├── openlab-entrypoint.sh          #   OpenLab container entrypoint
+│   └── verify-build.sh                #   Post-build verification
+│
+├── secrets/                           # Docker Secrets templates & guide
+├── tests/integration/                 # Integration test suite (test_services.py)
+├── .github/                           # CI workflows (build → scan → test → publish)
+├── .trivy.yml                         # Trivy vulnerability scan policy
+├── .hadolint.yaml                     # Dockerfile linter config
+├── .dockerignore
+│
+├── DEPLOYMENT.md                      # Step-by-step deployment walkthrough
+├── CHANGELOG.md                       # Release history
+├── release.json                       # Release metadata
+├── LICENSE                            # AGPL-3.0 + Apache-2.0 dual text
+├── NOTICE                             # Copyright & third-party notice
+├── README.md                          # This file
+└── README_zh.md                       # 简体中文版
 ```
 
-- **Upstream**:
-  - `AgentRT/` runtime source tree (kernel + daemons + gateway + OpenLab).
-  - `ecosystem/manager/` configuration defaults consumed via `config/`.
-  - `products/desktop` source is consumed by `Dockerfile.desktop` to build the
-    web frontend image (pure Vite build, no Tauri).
-- **Downstream**:
-  - Operators / enterprise deployments running the produced images.
-  - `products/desktop` end users may run the desktop client alongside a
-    locally launched `docker compose` stack as their gateway backend.
+## Features / Components
 
-## 2. Services & Images
-
-The module builds four OCI images, each with multiple named build targets:
+### Images & Build Targets
 
 | Image | Dockerfile | Targets | Ports | Purpose |
 |-------|-----------|---------|-------|---------|
@@ -87,7 +123,7 @@ The module builds four OCI images, each with multiple named build targets:
 | `spharx/agentos-openlab` | `Dockerfile.openlab` | `backend-builder`, `production`, `development` | `8000/tcp` (API) · `80/tcp` / `443/tcp` (web) · `5173/tcp` (dev) | OpenLab interactive platform — Python backend + Nginx static |
 | `spharx/agentos-desktop` | `Dockerfile.desktop` | `builder`, `production` | `80/tcp` | Static web build of the desktop client served by Nginx |
 
-### Daemon services orchestrated by Compose
+### Compose-orchestrated Daemon Services
 
 `docker-compose.yml` (dev) launches the kernel plus six supervisor-managed
 daemons and the gateway:
@@ -116,62 +152,7 @@ daemons and the gateway:
 | 9091 | Prometheus | Restricted | Monitoring UI (VPN-only in prod) |
 | 3000 | Grafana | Restricted | Dashboards (VPN-only in prod) |
 
-## 3. Directory Structure
-
-```
-docker/
-├── Dockerfile.kernel          # Kernel image (ubuntu:24.04 multi-stage)
-├── Dockerfile.daemon          # Daemon / Gateway image (supervisord-managed)
-├── Dockerfile.openlab         # OpenLab image (python:3.12-slim + nginx)
-├── Dockerfile.desktop         # Desktop web image (node:20 + nginx:1.27)
-│
-├── docker-compose.yml         # Development stack
-├── docker-compose.staging.yml # Staging stack (1:1 mirror of production)
-├── docker-compose.prod.yml    # Production stack (security-hardened)
-│
-├── .env.example                       # Dev env template
-├── .env.staging.example               # Staging env template
-├── .env.production.example            # Production env template (with secret gen)
-│
-├── config/                            # Runtime configuration
-│   ├── gateway.yaml                   #   Gateway: protocols, rate limit, JWT, upstream
-│   ├── seccomp-profile.json           #   seccomp syscall whitelist (CIS 5.7)
-│   ├── supervisor/                    #   supervisord main + per-daemon conf.d/
-│   ├── nginx/                         #   Reverse proxy + desktop/openlab static conf
-│   └── logging/                       #   Fluent Bit log aggregation templates
-│
-├── monitoring/                        # Observability stack
-│   ├── prometheus.yml                 #   Scrape config (kernel/gateway/postgres/redis)
-│   ├── alertmanager.yml               #   Alert routing (PagerDuty/Slack/Email)
-│   ├── rules/agentos_alerts.yml       #   15+ production alert rules
-│   └── grafana/                       #   Provisioned datasources + dashboards
-│
-├── scripts/                           # Operations tooling
-│   ├── quick-start.sh                 #   Interactive launcher (env check + menu)
-│   ├── install.sh                     #   One-shot installer
-│   ├── healthcheck.sh                 #   Multi-layer health probe (text/JSON)
-│   ├── backup.sh                      #   Backup / restore / verify / list (GPG + SHA256)
-│   ├── generate-secrets.sh            #   Strong random secret generator
-│   ├── harden.sh                      #   Security hardening appliance
-│   ├── openlab-entrypoint.sh          #   OpenLab container entrypoint
-│   └── verify-build.sh                #   Post-build verification
-│
-├── secrets/                           # Docker Secrets templates & guide
-├── tests/integration/                 # Integration test suite
-├── .github/                           # CI workflows (build → scan → test → publish)
-├── .trivy.yml                         # Trivy vulnerability scan policy
-├── .hadolint.yaml                     # Dockerfile linter config
-│
-├── DEPLOYMENT.md                      # Step-by-step deployment walkthrough
-├── CHANGELOG.md                       # Release history
-├── release.json                       # Release metadata
-├── LICENSE                            # AGPL-3.0 + Apache-2.0 dual text
-├── NOTICE                             # Copyright & third-party notice
-├── README.md                          # This file
-└── README_zh.md                       # 简体中文版
-```
-
-## 4. Tech Stack
+### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -185,7 +166,80 @@ docker/
 | Security | seccomp, cap_drop ALL, read-only FS, non-root `agentos:1000` |
 | CI/CD | GitHub Actions (Buildx multi-arch + Trivy scan + SARIF) |
 
-## 5. Installation & Usage
+### Security Baseline (CIS Docker Benchmark 1.5+)
+
+| CIS | Control | Implementation |
+|-----|---------|----------------|
+| 4.1 | Trusted base images | Official `ubuntu:24.04`, `python:3.12-slim`, `nginx:1.27-alpine` |
+| 4.6 | HEALTHCHECK | Every service has a layered health probe |
+| 5.4 | Rootless containers | `USER agentos:1000` (UID/GID 1000, shell `/sbin/nologin`) |
+| 5.7 | seccomp | `config/seccomp-profile.json` whitelist |
+| 5.9 | Read-only filesystem | `read_only: true` on production services |
+| 5.10 | Drop suid/sgid | `cap_drop: ALL` |
+| 5.11 | No new privileges | `no-new-privileges:true` |
+| 5.26 | Capability whitelist | `cap_add: NET_BIND_SERVICE` only |
+| 5.29 | Log driver config | `json-file` with `max-size` + `max-file` rotation |
+
+Secrets are never hardcoded: production manifests use `${VAR:?error}` to fail
+fast on missing values, and `secrets/` documents a Docker Secrets workflow.
+Trivy scans run in CI on every build.
+
+## Upstream Dependencies
+
+```
+   ┌─────────────────────────────────┐
+   │  AgentRT runtime (sdk/agentrt)  │
+   │  ecosystem/manager configs      │
+   └────────────────┬────────────────┘
+                    │ COPY sources at build time
+                    ▼
+   ┌─────────────────────────────────┐
+   │     products/docker (images)    │
+   │   Dockerfile.kernel             │
+   │   Dockerfile.daemon             │
+   │   Dockerfile.openlab            │
+   │   Dockerfile.desktop            │
+   └────────────────┬────────────────┘
+                    │ docker compose up
+                    ▼
+   ┌─────────────────────────────────┐
+   │  Operators / Enterprise         │
+   │  (Dev, Staging, Production)     │
+   └─────────────────────────────────┘
+```
+
+- **`AgentRT/` runtime source tree** — kernel + daemons + gateway + OpenLab
+  sources, `COPY`-ed into each builder stage at image build time. The build
+  context is the umbrella root (`context: ..`), so all four Dockerfiles read
+  the runtime sources directly.
+- **`ecosystem/manager/` configuration defaults** — consumed via `config/`
+  (gateway.yaml, supervisor conf.d, nginx, Fluent Bit) and baked into the
+  runtime images.
+- **`products/desktop` source** — consumed by `Dockerfile.desktop` to build
+  the web frontend image (pure Vite build, no Tauri native shell). The build
+  copies `Desktop/` and runs `npm ci && npm run build`.
+- **Third-party OCI images** — `ubuntu:24.04`, `python:3.12-slim`,
+  `node:20-slim`, `nginx:1.27-alpine`, `postgres:15-alpine`,
+  `redis:7-alpine`, `prom/prometheus`, `grafana/grafana`,
+  `prom/alertmanager`. These retain their upstream licenses.
+
+## Downstream Consumers
+
+- **Operators / enterprise deployments** — run the produced images in dev,
+  staging and production via the three Compose manifests. Stack scaling is
+  supported (e.g. `docker compose up --scale kernel=3`).
+- **`products/desktop` end users** — may run the desktop client alongside a
+  locally launched `docker compose` stack as their gateway backend
+  (default `localhost:18789`).
+- **Airymax Hub umbrella** — pins this leaf repo as a git submodule on the
+  `feature/official-hubs-01` branch for coordinated releases. Releases are
+  tagged from the release branch (see `release.json` and `CHANGELOG.md`).
+- **Optional: `products/memoryrovol`** — the commercial memory provider can be
+  linked into the AgentRT runtime at build time via
+  `-DAGENTRT_WITH_MEMORYROVOL=ON` before the runtime is containerized by this
+  module, unlocking L3/L4 memory capabilities under a commercial EULA.
+
+## Build / Installation
 
 ### Prerequisites
 
@@ -302,45 +356,14 @@ make monitoring                                          # Start Prometheus + Gr
 See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full walkthrough (reverse proxy,
 TLS, backup scheduling, performance tuning, Kubernetes migration with Kompose).
 
-## 6. Security Baseline
-
-The module implements CIS Docker Benchmark 1.5+ controls:
-
-| CIS | Control | Implementation |
-|-----|---------|----------------|
-| 4.1 | Trusted base images | Official `ubuntu:24.04`, `python:3.12-slim`, `nginx:1.27-alpine` |
-| 4.6 | HEALTHCHECK | Every service has a layered health probe |
-| 5.4 | Rootless containers | `USER agentos:1000` (UID/GID 1000, shell `/sbin/nologin`) |
-| 5.7 | seccomp | `config/seccomp-profile.json` whitelist |
-| 5.9 | Read-only filesystem | `read_only: true` on production services |
-| 5.10 | Drop suid/sgid | `cap_drop: ALL` |
-| 5.11 | No new privileges | `no-new-privileges:true` |
-| 5.26 | Capability whitelist | `cap_add: NET_BIND_SERVICE` only |
-| 5.29 | Log driver config | `json-file` with `max-size` + `max-file` rotation |
-
-Secrets are never hardcoded: production manifests use `${VAR:?error}` to fail
-fast on missing values, and `secrets/` documents a Docker Secrets workflow.
-Trivy scans run in CI on every build.
-
-## 7. Branch Strategy
+### Branch Strategy
 
 - Leaf repository active development branch: **`feature/official-hubs-01`**
 - Management repo (`products/`) tracks the same branch via git submodule pointer.
 - Releases are tagged from the release branch (see `release.json` and
   `CHANGELOG.md`).
 
-## 8. Related Repositories
-
-| Repository | Link | Role |
-|------------|------|------|
-| Airymax Hub (umbrella) | [atomgit.com/openairymax/airymaxhub](https://atomgit.com/openairymax/airymaxhub) | Top-level management repo |
-| Products (parent) | [atomgit.com/openairymax/products](https://atomgit.com/openairymax/products) | Packaging & distribution layer |
-| AgentRT Runtime / SDK | `sdk/agentrt` (within hub) | Upstream runtime — built into images |
-| Desktop Client | [atomgit.com/openairymax/desktop](https://atomgit.com/openairymax/desktop) | Source consumed by `Dockerfile.desktop` |
-| MemoryRovol (commercial) | [atomgit.com/spharx/memoryrovol](https://atomgit.com/spharx/memoryrovol) | Optional commercial memory provider (linked at runtime via `AGENTRT_WITH_MEMORYROVOL=ON`) |
-| **Docker Deployment (this repo)** | [atomgit.com/openairymax/docker](https://atomgit.com/openairymax/docker) | Containerized deployment |
-
-## 9. License
+## License
 
 This repository is dual-licensed:
 
@@ -358,4 +381,10 @@ See [`NOTICE`](NOTICE) for copyright, trademark and third-party component
 notices. The bundled third-party images (PostgreSQL, Redis, Prometheus, Grafana,
 Nginx, Ubuntu, Python, Node) retain their upstream licenses.
 
-Copyright (c) 2025-2026 **SPHARX Ltd.** All Rights Reserved.
+```
+Repository:  git@atomgit.com:openairymax/docker.git
+Branch:      feature/official-hubs-01
+SPDX:        AGPL-3.0-or-later OR Apache-2.0
+```
+
+Copyright (c) 2025-2026 SPHARX Ltd. All Rights Reserved.
