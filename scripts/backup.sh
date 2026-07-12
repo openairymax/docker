@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS 自动化备份与恢复脚本 (Backup & Recovery Script)
+# AgentRT 自动化备份与恢复脚本 (Backup & Recovery Script)
 # 版本：0.1.0 (Production-Grade)
-# 用途：定期备份 AgentOS 所有持久化数据，支持快速恢复
+# 用途：定期备份 AgentRT 所有持久化数据，支持快速恢复
 #
 # 使用方法:
 #   # 备份操作
@@ -46,7 +46,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCKER_DIR="$PROJECT_ROOT"
 
 # 备份目录配置
-BACKUP_BASE_DIR="${AGENTOS_BACKUP_DIR:-/data/backups/agentos}"
+BACKUP_BASE_DIR="${AGENTRT_BACKUP_DIR:-/data/backups/agentrt}"
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
 BACKUP_DIR="$BACKUP_BASE_DIR/$TIMESTAMP"
 
@@ -80,7 +80,7 @@ BACKUP_FILES_COUNT=0
 # -----------------------------------------------------------------------------
 usage() {
     cat <<EOF
-AgentOS Backup & Recovery Script v0.1.0
+AgentRT Backup & Recovery Script v0.1.0
 
 Usage: $0 <ACTION> [OPTIONS]
 
@@ -95,19 +95,19 @@ Options:
     --env ENV           Target environment: dev | prod (default: dev)
     --target TARGET     Backup target: all | db-only | data-only (default: all)
     --retain DAYS       Number of days to retain backups (default: 30)
-    --encrypt           Encrypt backup with GPG (requires GPG_AGENTOS_KEY)
+    --encrypt           Encrypt backup with GPG (requires GPG_AGENTRT_KEY)
     -h, --help          Show this help message
 
 Environment Variables:
-    AGENTOS_BACKUP_DIR      Base directory for backups (default: /data/backups/agentos)
-    AGENTOS_GPG_KEY        GPG key ID for encryption (optional)
+    AGENTRT_BACKUP_DIR      Base directory for backups (default: /data/backups/agentrt)
+    AGENTRT_GPG_KEY        GPG key ID for encryption (optional)
     POSTGRES_PASSWORD      PostgreSQL password (for restore)
 
 Examples:
     $0 backup                              # Full backup (development)
     $0 backup --env prod                   # Full backup (production)
     $0 backup --env prod --encrypt         # Encrypted production backup
-    $0 restore /backups/agentos/20260406_120000_full.tar.gz
+    $0 restore /backups/agentrt/20260406_120000_full.tar.gz
     $0 list                                # List all backups
     $0 clean --retain 7                    # Keep only last 7 days
 EOF
@@ -206,12 +206,12 @@ backup_postgresql() {
         return 1
     fi
     
-    local backup_file="$BACKUP_DIR/database/postgres_agentos_$(date '+%Y%m%d_%H%M%S').sql.gz"
+    local backup_file="$BACKUP_DIR/database/postgres_agentrt_$(date '+%Y%m%d_%H%M%S').sql.gz"
     
     # 使用 pg_dump 导出并压缩
     docker exec "$pg_container" pg_dump \
-        -U agentos \
-        -d agentos \
+        -U agentrt \
+        -d agentrt \
         --no-owner \
         --no-privileges \
         --format=custom \
@@ -271,9 +271,9 @@ backup_redis() {
 backup_heapstore() {
     log_info "Backing up HeapStore data partitions..."
     
-    local volume_prefix="agentos_prod_"
+    local volume_prefix="agentrt_prod_"
     if [[ "$ENVIRONMENT" == "dev" ]]; then
-        volume_prefix="agentos_"
+        volume_prefix="agentrt_"
     fi
     
     # 定义需要备份的卷列表（基于 heapstore_path_type_t 枚举）
@@ -355,7 +355,7 @@ generate_manifest() {
     "environment": "$ENVIRONMENT",
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "hostname": "$(hostname)",
-    "agentos_version": "${AGENTOS_VERSION:-unknown}",
+    "agentrt_version": "${AGENTRT_VERSION:-unknown}",
     "backup_target": "$BACKUP_TARGET",
     "statistics": {
         "total_files": $BACKUP_FILES_COUNT,
@@ -381,7 +381,7 @@ EOF
 package_backup() {
     log_info "Packaging backup archive..."
     
-    local archive_name="agentos_${ENVIRONMENT}_${TIMESTAMP}_full.tar.gz"
+    local archive_name="agentrt_${ENVIRONMENT}_${TIMESTAMP}_full.tar.gz"
     local archive_path="$BACKUP_BASE_DIR/$archive_name"
     
     # 打包整个备份目录
@@ -430,7 +430,7 @@ restore_postgresql() {
     
     # 执行恢复（先清空数据库再导入）
     docker exec "$pg_container" bash -c "
-        gunzip -c /tmp/restore.sql.gz | psql -U agentos -d agentos && \
+        gunzip -c /tmp/restore.sql.gz | psql -U agentrt -d agentrt && \
         rm -f /tmp/restore.sql.gz
     " 2>/dev/null || {
         log_error "PostgreSQL restore failed"
@@ -502,9 +502,9 @@ restore_heapstore() {
         volume_name=$(basename "$archive" .tar.gz)
         
         # 构建完整的卷名
-        local full_volume_name="agentos_${volume_name}"
+        local full_volume_name="agentrt_${volume_name}"
         if [[ "$ENVIRONMENT" == "prod" ]]; then
-            full_volume_name="agentos_prod_${volume_name}"
+            full_volume_name="agentrt_prod_${volume_name}"
         fi
         
         # 获取卷挂载点
@@ -547,7 +547,7 @@ list_backups() {
     printf "%-40s %12s %15s\n" "FILENAME" "SIZE" "DATE"
     printf "%-40s %12s %15s\n" "--------" "----" "----"
     
-    find "$BACKUP_BASE_DIR" -name "agentos_*.tar.gz" -type f 2>/dev/null | sort -r | while read -r f; do
+    find "$BACKUP_BASE_DIR" -name "agentrt_*.tar.gz" -type f 2>/dev/null | sort -r | while read -r f; do
         local size
         size=$(du -sh "$f" | cut -f1)
         local date
@@ -561,14 +561,14 @@ clean_old_backups() {
     log_info "Cleaning backups older than $RETAIN_DAYS days..."
     
     local count
-    count=$(find "$BACKUP_BASE_DIR" -name "agentos_*.tar.gz" -type f -mtime "+$RETAIN_DAYS" 2>/dev/null | wc -l)
+    count=$(find "$BACKUP_BASE_DIR" -name "agentrt_*.tar.gz" -type f -mtime "+$RETAIN_DAYS" 2>/dev/null | wc -l)
     
     if [[ "$count" -eq 0 ]]; then
         log_success "No expired backups to clean"
         return
     fi
     
-    find "$BACKUP_BASE_DIR" -name "agentos_*.tar.gz" -type f -mtime "+$RETAIN_DAYS" -delete 2>/dev/null
+    find "$BACKUP_BASE_DIR" -name "agentrt_*.tar.gz" -type f -mtime "+$RETAIN_DAYS" -delete 2>/dev/null
     log_success "Cleaned $count expired backup(s)"
 }
 
