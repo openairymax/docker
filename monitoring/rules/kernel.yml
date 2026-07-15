@@ -2,7 +2,7 @@ groups:
   - name: kernel
     rules:
       - alert: KernelHighMemory
-        expr: container_memory_usage_bytes{container_name=~"agentos-kernel.*"} / container_spec_memory_limit_bytes{container_name=~"agentos-kernel.*"} > 0.85
+        expr: container_memory_usage_bytes{container_name=~"agentrt-kernel.*"} / container_spec_memory_limit_bytes{container_name=~"agentrt-kernel.*"} > 0.85
         for: 5m
         labels:
           severity: warning
@@ -12,7 +12,7 @@ groups:
           description: "Kernel container memory usage is {{ $value | humanizePercentage }}"
 
       - alert: KernelHighCPU
-        expr: rate(container_cpu_usage_seconds_total{container_name=~"agentos-kernel.*"}[5m]) * 100 > 80
+        expr: rate(container_cpu_usage_seconds_total{container_name=~"agentrt-kernel.*"}[5m]) * 100 > 80
         for: 5m
         labels:
           severity: warning

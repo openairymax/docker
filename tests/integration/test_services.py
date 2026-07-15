@@ -1,5 +1,5 @@
 """
-AgentOS Docker Integration Tests
+AgentRT Docker Integration Tests
 版本: 0.1.0
 用途: 验证Docker Compose服务的基本功能
 
@@ -16,8 +16,8 @@ import os
 class TestServiceHealth:
     """服务健康检查测试"""
 
-    GATEWAY_URL = os.getenv("AGENTOS_GATEWAY_URL", "http://localhost:18789")
-    KERNEL_URL = os.getenv("AGENTOS_KERNEL_URL", "http://localhost:18080")
+    GATEWAY_URL = os.getenv("AGENTRT_GATEWAY_URL", "http://localhost:18789")
+    KERNEL_URL = os.getenv("AGENTRT_KERNEL_URL", "http://localhost:18080")
     DESKTOP_URL = os.getenv("DESKTOP_URL", "http://localhost:8080")
     TIMEOUT = int(os.getenv("TEST_TIMEOUT", "10"))
 
@@ -76,7 +76,7 @@ class TestServiceHealth:
 class TestAPIEndpoints:
     """API端点功能测试"""
 
-    GATEWAY_URL = os.getenv("AGENTOS_GATEWAY_URL", "http://localhost:18789")
+    GATEWAY_URL = os.getenv("AGENTRT_GATEWAY_URL", "http://localhost:18789")
     TIMEOUT = int(os.getenv("TEST_TIMEOUT", "10"))
 
     def test_api_returns_json(self):

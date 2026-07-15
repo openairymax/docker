@@ -87,8 +87,8 @@ harden_postgres() {
     fi
 
     docker exec "$pg_id" sh -c '
-        psql -U agentos -c "ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;" 2>/dev/null || true
-        psql -U agentos -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;" 2>/dev/null || true
+        psql -U agentrt -c "ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;" 2>/dev/null || true
+        psql -U agentrt -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC;" 2>/dev/null || true
     ' 2>/dev/null || warn "Some PostgreSQL hardening commands could not be applied"
 
     info "PostgreSQL container hardened"
@@ -155,7 +155,7 @@ verify_image_signatures() {
 
     for img in $images; do
         if echo "$img" | grep -q "spharx/"; then
-            info "Found AgentOS image: $img"
+            info "Found AgentRT image: $img"
         fi
     done
 
@@ -165,7 +165,7 @@ verify_image_signatures() {
 scan_vulnerabilities() {
     info "Checking for image vulnerability scanner..."
     if command -v trivy >/dev/null 2>&1; then
-        info "Trivy found, scanning AgentOS images..."
+        info "Trivy found, scanning AgentRT images..."
         local images
         images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep 'spharx/' | head -5)
         for img in $images; do
@@ -322,7 +322,7 @@ generate_security_report() {
     local report_file="security-report-$(date +%Y%m%d-%H%M%S).txt"
 
     {
-        echo "AgentOS Docker Security Report"
+        echo "AgentRT Docker Security Report"
         echo "Generated: $(date -Iseconds)"
         echo "================================"
         echo ""

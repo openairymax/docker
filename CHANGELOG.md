@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Docker Buildx multi-platform build support
   - Slack notification integration
 
-- **Nginx Reverse Proxy Configuration** (`config/nginx/agentos-proxy.conf`)
+- **Nginx Reverse Proxy Configuration** (`config/nginx/agentrt-proxy.conf`)
   - SSL/TLS termination + HTTP/2 support
   - WebSocket proxy + CORS handling
   - Grafana sub-path proxy + Basic Auth
@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CIS Docker Benchmark compliance (10+ controls)
 - Mandatory password validation (`${VAR:?❌ ERROR}` syntax)
-- Non-root user execution (`USER agentos:1000`)
+- Non-root user execution (`USER agentrt:1000`)
 - Port minimization for production
 
 ---

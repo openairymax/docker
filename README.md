@@ -45,7 +45,7 @@ backed by PostgreSQL for relational storage and Redis for IPC cache,
 sessions and rate limiting.
 
 The deployment implements a CIS Docker Benchmark 1.5+ aligned security baseline
-across all production services: non-root `agentos:1000` user, `read_only`
+across all production services: non-root `agentrt:1000` user, `read_only`
 filesystems, `config/seccomp-profile.json` syscall whitelist, `cap_drop: ALL`,
 `no-new-privileges: true`, structured JSON log rotation, layered HEALTHCHECK
 probes on every service, and `${VAR:?error}` enforcement so the stack fails
@@ -75,7 +75,7 @@ docker/
 │   ├── seccomp-profile.json           #   seccomp syscall whitelist (CIS 5.7)
 │   ├── supervisor/                    #   supervisord main + per-daemon conf.d/
 │   ├── nginx/                         #   Reverse proxy + desktop/openlab static conf
-│   │   ├── openlab.conf  desktop.conf  agentos-proxy.conf
+│   │   ├── openlab.conf  desktop.conf  agentrt-proxy.conf
 │   └── logging/                       #   Fluent Bit log aggregation templates
 │       └── fluent-bit.conf
 │
@@ -83,7 +83,7 @@ docker/
 │   ├── prometheus.yml                 #   Scrape config (kernel/gateway/postgres/redis)
 │   ├── alertmanager.yml               #   Alert routing (PagerDuty/Slack/Email)
 │   ├── rules/                         #   Alert rule files
-│   │   ├── kernel.yml  agentos_alerts.yml
+│   │   ├── kernel.yml  agentrt_alerts.yml
 │   └── grafana/                       #   Provisioned datasources + dashboards
 │
 ├── scripts/                           # Operations tooling
@@ -118,10 +118,10 @@ docker/
 
 | Image | Dockerfile | Targets | Ports | Purpose |
 |-------|-----------|---------|-------|---------|
-| `spharx/agentos-kernel` | `Dockerfile.kernel` | `builder`, `runtime`, `debug` | `18080/tcp` (IPC API) · `9090/tcp` (metrics) | Microkernel core — IPC, memory, task, time |
-| `spharx/agentos-daemon` / `agentos-gateway` | `Dockerfile.daemon` | `builder`, `runtime`, `gateway`, `debug` | `18789/tcp` (API) · `18790/tcp` (admin) | Supervisor-managed daemons and three-protocol gateway (HTTP / WebSocket / stdio) |
-| `spharx/agentos-openlab` | `Dockerfile.openlab` | `backend-builder`, `production`, `development` | `8000/tcp` (API) · `80/tcp` / `443/tcp` (web) · `5173/tcp` (dev) | OpenLab interactive platform — Python backend + Nginx static |
-| `spharx/agentos-desktop` | `Dockerfile.desktop` | `builder`, `production` | `80/tcp` | Static web build of the desktop client served by Nginx |
+| `spharx/agentrt-kernel` | `Dockerfile.kernel` | `builder`, `runtime`, `debug` | `18080/tcp` (IPC API) · `9090/tcp` (metrics) | Microkernel core — IPC, memory, task, time |
+| `spharx/agentrt-daemon` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`, `runtime`, `gateway`, `debug` | `18789/tcp` (API) · `18790/tcp` (admin) | Supervisor-managed daemons and three-protocol gateway (HTTP / WebSocket / stdio) |
+| `spharx/agentrt-openlab` | `Dockerfile.openlab` | `backend-builder`, `production`, `development` | `8000/tcp` (API) · `80/tcp` / `443/tcp` (web) · `5173/tcp` (dev) | OpenLab interactive platform — Python backend + Nginx static |
+| `spharx/agentrt-desktop` | `Dockerfile.desktop` | `builder`, `production` | `80/tcp` | Static web build of the desktop client served by Nginx |
 
 ### Compose-orchestrated Daemon Services
 
@@ -163,7 +163,7 @@ daemons and the gateway:
 | Data stores | PostgreSQL 15-alpine, Redis 7-alpine |
 | Observability | Prometheus v2.45, Grafana 10.2, AlertManager |
 | Logging | JSON-file driver with rotation + optional Fluent Bit sidecar |
-| Security | seccomp, cap_drop ALL, read-only FS, non-root `agentos:1000` |
+| Security | seccomp, cap_drop ALL, read-only FS, non-root `agentrt:1000` |
 | CI/CD | GitHub Actions (Buildx multi-arch + Trivy scan + SARIF) |
 
 ### Security Baseline (CIS Docker Benchmark 1.5+)
@@ -172,7 +172,7 @@ daemons and the gateway:
 |-----|---------|----------------|
 | 4.1 | Trusted base images | Official `ubuntu:24.04`, `python:3.12-slim`, `nginx:1.27-alpine` |
 | 4.6 | HEALTHCHECK | Every service has a layered health probe |
-| 5.4 | Rootless containers | `USER agentos:1000` (UID/GID 1000, shell `/sbin/nologin`) |
+| 5.4 | Rootless containers | `USER agentrt:1000` (UID/GID 1000, shell `/sbin/nologin`) |
 | 5.7 | seccomp | `config/seccomp-profile.json` whitelist |
 | 5.9 | Read-only filesystem | `read_only: true` on production services |
 | 5.10 | Drop suid/sgid | `cap_drop: ALL` |
@@ -333,7 +333,7 @@ curl -fsS http://localhost:18789/api/v1/health
 curl -fsS http://localhost:18080/api/v1/health
 
 # Database
-docker compose exec postgres pg_isready -U agentos
+docker compose exec postgres pg_isready -U agentrt
 
 # Redis
 docker compose exec redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'

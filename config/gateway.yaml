@@ -1,7 +1,7 @@
 # =============================================================================
-# AgentOS Gateway 配置文件
+# AgentRT Gateway 配置文件
 # 版本: 0.1.0
-# 基于源码: agentos/gateway/src/gateway/*.c
+# 基于源码: agentrt/gateway/src/gateway/*.c
 # =============================================================================
 
 gateway:
@@ -81,8 +81,8 @@ gateway:
   logging:
     level: info                     # debug | info | warn | error
     format: json                    # json | text
-    access_log: "/var/log/agentos/gateway_access.log"
-    error_log: "/var/log/agentos/gateway_error.log"
+    access_log: "/var/log/agentrt/gateway_access.log"
+    error_log: "/var/log/agentrt/gateway_error.log"
     max_log_size_mb: 100             # 单个日志文件最大大小
     log_rotation_count: 5            # 保留的轮转日志数量
     include_request_body: false       # 是否在日志中包含请求体
@@ -106,7 +106,7 @@ gateway:
     auth:
       enabled: true
       jwt_secret: "${GATEWAY_JWT_SECRET}"  # 从环境变量读取
-      jwt_issuer: "agentos-gateway"
+      jwt_issuer: "agentrt-gateway"
       token_expiry_hours: 24
       refresh_token_expiry_days: 7
 
@@ -128,13 +128,13 @@ gateway:
     metrics:
       enabled: true
       path: /metrics
-      namespace: agentos_gateway
+      namespace: agentrt_gateway
 
     # 分布式追踪
     tracing:
       enabled: true
       sampler_ratio: 1.0             # 采样率 (0.0-1.0)
-      service_name: "agentos-gateway"
+      service_name: "agentrt-gateway"
       exporter_endpoint: "http://jaeger:14268/api/traces"
 
     # 请求 ID 生成

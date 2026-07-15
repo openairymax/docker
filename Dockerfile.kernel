@@ -1,11 +1,11 @@
 # =============================================================================
-# AgentOS 内核 Dockerfile - 生产级构建
+# AgentRT 内核 Dockerfile - 生产级构建
 # 版本: 0.1.0 (Production-Ready)
 # 最后更新: 2026-04-15
 #
 # 🎯 生产级特性:
 # ✅ 多阶段构建 (Builder → Runtime → Minimal)
-# ✅ 非root用户运行 (agentos:agentos, UID/GID: 1000)
+# ✅ 非root用户运行 (agentrt:agentrt, UID/GID: 1000)
 # ✅ 最小化攻击面 (seccomp + capabilities + 只读文件系统)
 # ✅ 安全默认配置 (无特权、无shell、无密码)
 # ✅ 健康检查就绪探针 (HTTP + gRPC 双协议支持)
@@ -106,14 +106,14 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # 元数据标签（符合 OCI Image Spec）
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Kernel v0.1.1" \
-      org.opencontainers.image.description="AgentOS智能体操作系统内核层 (生产级)" \
+      org.opencontainers.image.title="AgentRT Kernel v0.1.1" \
+      org.opencontainers.image.description="AgentRT智能体操作系统内核层 (生产级)" \
       org.opencontainers.image.version="0.1.1" \
-      org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
-      org.opencontainers.image.documentation="https://docs.spharx.cn/agentos/docker" \
+      org.opencontainers.image.source="https://gitcode.com/spharx/agentrt" \
+      org.opencontainers.image.documentation="https://docs.spharx.cn/agentrt/docker" \
       org.opencontainers.image.vendor="SPHARX Ltd." \
       org.opencontainers.image.licenses="Proprietary" \
-      org.opencontainers.image.ref.name="spharx/agentos:kernel-v0.1.1" \
+      org.opencontainers.image.ref.name="spharx/agentrt:kernel-v0.1.1" \
       org.opencontainers.image.base.digest="" \
       org.opencontainers.image.created="2026-07-02T00:00:00Z"
 
@@ -143,10 +143,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/dpkg/* /usr/share/doc/* /usr/share/man/*
 
 # 创建专用系统用户（非 root，无 shell，无密码）
-RUN groupadd -r -g 1000 agentos \
-    && useradd -l -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
+RUN groupadd -r -g 1000 agentrt \
+    && useradd -l -r -u 1000 -g agentrt -d /app -s /sbin/nologin agentrt \
     && mkdir -p /app/{bin,config,data,logs,lib,tmp,run} \
-    && chown -R agentos:agentos /app \
+    && chown -R agentrt:agentrt /app \
     && chmod 750 /app \
     && chmod 700 /app/config /app/data /app/logs /app/run
 
@@ -158,13 +158,13 @@ COPY --from=builder /usr/local/lib/ /app/lib/
 COPY Docker/config/ /app/config/
 
 # 设置正确的文件权限
-RUN chown -R agentos:agentos /app/bin /app/lib /app/config \
+RUN chown -R agentrt:agentrt /app/bin /app/lib /app/config \
     && find /app/bin -type f -exec chmod 550 {} \; \
     && find /app/lib -type f -exec chmod 440 {} \; \
-    && chmod 755 /app/bin/agentos-kernel
+    && chmod 755 /app/bin/agentrt-kernel
 
 # 切换到非 root 用户（必须在 VOLUME 和 EXPOSE 之前）
-USER agentos
+USER agentrt
 
 # 设置工作目录
 WORKDIR /app
@@ -173,13 +173,13 @@ WORKDIR /app
 EXPOSE 18080/tcp 9090/tcp
 
 # 环境变量（最小化暴露，敏感信息通过 secrets 管理）
-ENV AGENTOS_HOME=/app \
-    AGENTOS_CONFIG_DIR=/app/config \
-    AGENTOS_DATA_DIR=/app/data \
-    AGENTOS_LOG_DIR=/app/logs \
-    AGENTOS_RUN_DIR=/app/run \
-    AGENTOS_IPC_BIND_ADDR=0.0.0.0 \
-    AGENTOS_IPC_BIND_PORT=18080 \
+ENV AGENTRT_HOME=/app \
+    AGENTRT_CONFIG_DIR=/app/config \
+    AGENTRT_DATA_DIR=/app/data \
+    AGENTRT_LOG_DIR=/app/logs \
+    AGENTRT_RUN_DIR=/app/run \
+    AGENTRT_IPC_BIND_ADDR=0.0.0.0 \
+    AGENTRT_IPC_BIND_PORT=18080 \
     LOG_LEVEL=INFO \
     TZ=Asia/Shanghai \
     LANG=C.UTF-8 \
@@ -196,7 +196,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -fsS http://localhost:18080/api/v1/health > /dev/null || exit 1
 
 # 启动命令（使用 exec 形式确保 PID 1 正确接收信号）
-CMD ["./bin/agentos-kernel", "--config", "/app/config"]
+CMD ["./bin/agentrt-kernel", "--config", "/app/config"]
 
 # =============================================================================
 # 阶段3: 调试版本 (Debug) - 仅用于开发调试，不推荐生产使用
@@ -216,7 +216,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping=3:20221126-1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-USER agentos
+USER agentrt
 
 ENV LOG_LEVEL=DEBUG \
-    AGENTOS_DEBUG_MODE=true
+    AGENTRT_DEBUG_MODE=true

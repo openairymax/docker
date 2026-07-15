@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS OpenLab Entrypoint
+# AgentRT OpenLab Entrypoint
 # 版本: 0.1.0 (团队E 第09轮次)
 # 用途: 替代单CMD，提供安全初始化、密钥生成和信号处理
 # BAN合规: BAN-43 (零明文密钥), BAN-57 (CORS安全)
@@ -136,7 +136,7 @@ configure_security_headers() {
 # =============================================================================
 main() {
     log_info "============================================"
-    log_info " AgentOS OpenLab Entrypoint v1.0.0"
+    log_info " AgentRT OpenLab Entrypoint v1.0.0"
     log_info "============================================"
     
     # 1. 设置目录

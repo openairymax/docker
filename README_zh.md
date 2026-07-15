@@ -39,7 +39,7 @@ AlertManager 可观测性栈串联起来。它是
 会话与限流。
 
 部署在所有生产服务上实现了 CIS Docker Benchmark 1.5+ 对齐的安全基线：非 root
-`agentos:1000` 用户、`read_only` 文件系统、`config/seccomp-profile.json` 系统调用白名单、
+`agentrt:1000` 用户、`read_only` 文件系统、`config/seccomp-profile.json` 系统调用白名单、
 `cap_drop: ALL`、`no-new-privileges: true`、结构化 JSON 日志轮转、每个服务的分层 HEALTHCHECK
 探针，以及 `${VAR:?error}` 强制校验使栈在缺失任何密钥时立即失败。CI 每次构建均运行 Trivy 扫描。
 本模块面向需要在生产环境中运行、扩容和观测 Airymax 的 DevOps 工程师、SRE 与企业运维人员。
@@ -66,7 +66,7 @@ docker/
 │   ├── seccomp-profile.json           #   seccomp 系统调用白名单（CIS 5.7）
 │   ├── supervisor/                    #   supervisord 主配置 + 各守护进程 conf.d/
 │   ├── nginx/                         #   反向代理 + desktop/openlab 静态配置
-│   │   ├── openlab.conf  desktop.conf  agentos-proxy.conf
+│   │   ├── openlab.conf  desktop.conf  agentrt-proxy.conf
 │   └── logging/                       #   Fluent Bit 日志聚合模板
 │       └── fluent-bit.conf
 │
@@ -74,7 +74,7 @@ docker/
 │   ├── prometheus.yml                 #   抓取配置（kernel/gateway/postgres/redis）
 │   ├── alertmanager.yml               #   告警路由（PagerDuty/Slack/Email）
 │   ├── rules/                         #   告警规则文件
-│   │   ├── kernel.yml  agentos_alerts.yml
+│   │   ├── kernel.yml  agentrt_alerts.yml
 │   └── grafana/                       #   自动 provisioning 的数据源与仪表盘
 │
 ├── scripts/                           # 运维工具
@@ -109,10 +109,10 @@ docker/
 
 | 镜像 | Dockerfile | Target | 端口 | 用途 |
 |------|-----------|--------|------|------|
-| `spharx/agentos-kernel` | `Dockerfile.kernel` | `builder`、`runtime`、`debug` | `18080/tcp`（IPC API）· `9090/tcp`（指标） | 微内核核心 —— IPC、内存、任务、时间 |
-| `spharx/agentos-daemon` / `agentos-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `18789/tcp`（API）· `18790/tcp`（管理） | Supervisor 管理的守护进程与三协议网关（HTTP / WebSocket / stdio） |
-| `spharx/agentos-openlab` | `Dockerfile.openlab` | `backend-builder`、`production`、`development` | `8000/tcp`（API）· `80/tcp` / `443/tcp`（Web）· `5173/tcp`（开发） | OpenLab 交互平台 —— Python 后端 + Nginx 静态 |
-| `spharx/agentos-desktop` | `Dockerfile.desktop` | `builder`、`production` | `80/tcp` | 桌面客户端的静态 Web 构建，由 Nginx 服务 |
+| `spharx/agentrt-kernel` | `Dockerfile.kernel` | `builder`、`runtime`、`debug` | `18080/tcp`（IPC API）· `9090/tcp`（指标） | 微内核核心 —— IPC、内存、任务、时间 |
+| `spharx/agentrt-daemon` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `18789/tcp`（API）· `18790/tcp`（管理） | Supervisor 管理的守护进程与三协议网关（HTTP / WebSocket / stdio） |
+| `spharx/agentrt-openlab` | `Dockerfile.openlab` | `backend-builder`、`production`、`development` | `8000/tcp`（API）· `80/tcp` / `443/tcp`（Web）· `5173/tcp`（开发） | OpenLab 交互平台 —— Python 后端 + Nginx 静态 |
+| `spharx/agentrt-desktop` | `Dockerfile.desktop` | `builder`、`production` | `80/tcp` | 桌面客户端的静态 Web 构建，由 Nginx 服务 |
 
 ### Compose 编排的守护进程服务
 
@@ -153,7 +153,7 @@ docker/
 | 数据存储 | PostgreSQL 15-alpine、Redis 7-alpine |
 | 可观测性 | Prometheus v2.45、Grafana 10.2、AlertManager |
 | 日志 | JSON-file 驱动 + 轮转 + 可选 Fluent Bit sidecar |
-| 安全 | seccomp、cap_drop ALL、只读 FS、非 root `agentos:1000` |
+| 安全 | seccomp、cap_drop ALL、只读 FS、非 root `agentrt:1000` |
 | CI/CD | GitHub Actions（Buildx 多架构 + Trivy 扫描 + SARIF） |
 
 ### 安全基线（CIS Docker Benchmark 1.5+）
@@ -162,7 +162,7 @@ docker/
 |-----|--------|----------|
 | 4.1 | 受信任基础镜像 | 官方 `ubuntu:24.04`、`python:3.12-slim`、`nginx:1.27-alpine` |
 | 4.6 | HEALTHCHECK | 每个服务均有分层健康探针 |
-| 5.4 | Rootless 容器 | `USER agentos:1000`（UID/GID 1000，shell `/sbin/nologin`） |
+| 5.4 | Rootless 容器 | `USER agentrt:1000`（UID/GID 1000，shell `/sbin/nologin`） |
 | 5.7 | seccomp | `config/seccomp-profile.json` 白名单 |
 | 5.9 | 只读文件系统 | 生产服务 `read_only: true` |
 | 5.10 | 禁用 suid/sgid | `cap_drop: ALL` |
@@ -313,7 +313,7 @@ curl -fsS http://localhost:18789/api/v1/health
 curl -fsS http://localhost:18080/api/v1/health
 
 # 数据库
-docker compose exec postgres pg_isready -U agentos
+docker compose exec postgres pg_isready -U agentrt
 
 # Redis
 docker compose exec redis sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'

@@ -1,5 +1,5 @@
 # =============================================================================
-# AgentOS 生产环境告警规则 (Production Alert Rules)
+# AgentRT 生产环境告警规则 (Production Alert Rules)
 # 版本: 0.1.0
 # 用途: 定义关键服务的告警阈值和通知策略
 #
@@ -19,31 +19,31 @@
 
 groups:
   # ===========================================================================
-  # 组 1: AgentOS 内核服务告警 (Kernel Service Alerts)
+  # 组 1: AgentRT 内核服务告警 (Kernel Service Alerts)
   # ===========================================================================
-  - name: agentos-kernel-alerts
+  - name: agentrt-kernel-alerts
     interval: 30s
     rules:
 
     # 内核服务宕机 (CRITICAL)
     - alert: KernelServiceDown
-      expr: up{job="agentos-kernel"} == 0
+      expr: up{job="agentrt-kernel"} == 0
       for: 1m
       labels:
         severity: critical
         team: platform
         service: kernel
       annotations:
-        summary: "AgentOS Kernel 服务宕机 (实例: {{ $labels.instance }})"
-        description: "Kernel 服务已停止运行超过 1 分钟。当前所有 API 请求将失败。\n\n**影响范围:** 所有依赖 Kernel IPC 的服务\n**立即行动:** 检查容器日志: docker logs agentos-kernel-prod"
+        summary: "AgentRT Kernel 服务宕机 (实例: {{ $labels.instance }})"
+        description: "Kernel 服务已停止运行超过 1 分钟。当前所有 API 请求将失败。\n\n**影响范围:** 所有依赖 Kernel IPC 的服务\n**立即行动:** 检查容器日志: docker logs agentrt-kernel-prod"
 
     # 内核 HTTP 错误率过高 (WARNING)
     - alert: KernelHighErrorRate
       expr: |
         (
-          sum(rate(http_requests_total{job="agentos-kernel", status=~"5.."}[5m]))
+          sum(rate(http_requests_total{job="agentrt-kernel", status=~"5.."}[5m]))
           /
-          sum(rate(http_requests_total{job="agentos-kernel"}[5m]))
+          sum(rate(http_requests_total{job="agentrt-kernel"}[5m]))
         ) * 100 > 5
       for: 5m
       labels:
@@ -56,7 +56,7 @@ groups:
 
     # Syscall 延迟过高 (WARNING)
     - alert: KernelHighSyscallLatency
-      expr: histogram_quantile(0.99, rate(syscall_duration_seconds_bucket{job="agentos-kernel"}[5m])) > 1
+      expr: histogram_quantile(0.99, rate(syscall_duration_seconds_bucket{job="agentrt-kernel"}[5m])) > 1
       for: 5m
       labels:
         severity: warning
@@ -68,7 +68,7 @@ groups:
 
     # 内存使用接近上限 (WARNING)
     - alert: KernelHighMemoryUsage
-      expr: process_resident_memory_bytes{job="agentos-kernel"} / (1024*1024*1024) > 3.5
+      expr: process_resident_memory_bytes{job="agentrt-kernel"} / (1024*1024*1024) > 3.5
       for: 10m
       labels:
         severity: warning
@@ -81,25 +81,25 @@ groups:
   # ===========================================================================
   # 组 2: Gateway 网关服务告警 (Gateway Service Alerts)
   # ===========================================================================
-  - name: agentos-gateway-alerts
+  - name: agentrt-gateway-alerts
     interval: 30s
     rules:
 
     # Gateway 宕机 (CRITICAL)
     - alert: GatewayServiceDown
-      expr: up{job="agentos-gateway"} == 0
+      expr: up{job="agentrt-gateway"} == 0
       for: 1m
       labels:
         severity: critical
         team: platform
         service: gateway
       annotations:
-        summary: "AgentOS Gateway 服务宕机"
-        description: "Gateway 是唯一对外入口，宕机将导致所有外部访问中断！\n\n**立即行动:**\n1. docker restart agentos-gateway-prod\n2. 检查日志: docker logs --tail 100 agentos-gateway-prod\n3. 确认上游 Kernel 是否正常"
+        summary: "AgentRT Gateway 服务宕机"
+        description: "Gateway 是唯一对外入口，宕机将导致所有外部访问中断！\n\n**立即行动:**\n1. docker restart agentrt-gateway-prod\n2. 检查日志: docker logs --tail 100 agentrt-gateway-prod\n3. 确认上游 Kernel 是否正常"
 
     # Gateway 高延迟 (WARNING)
     - alert: GatewayHighLatency
-      expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="agentos-gateway"}[5m])) > 2
+      expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="agentrt-gateway"}[5m])) > 2
       for: 5m
       labels:
         severity: warning
@@ -111,7 +111,7 @@ groups:
 
     # Gateway 速率限制触发频繁 (INFO)
     - alert: GatewayRateLimitingActive
-      expr: rate(gateway_rate_limited_requests_total{job="agentos-gateway"}[5m]) > 10
+      expr: rate(gateway_rate_limited_requests_total{job="agentrt-gateway"}[5m]) > 10
       for: 5m
       labels:
         severity: info
@@ -193,7 +193,7 @@ groups:
         service: redis
       annotations:
         summary: "Redis 缓存服务宕机"
-        description: "Redis 停止运行，将导致：\n- 会话丢失（用户强制重新登录）\n- Rate Limiting 失效（DDoS 风险）\n- 权限缓存失效（性能大幅下降）\n\n**立即重启:** docker restart agentos-redis-prod"
+        description: "Redis 停止运行，将导致：\n- 会话丢失（用户强制重新登录）\n- Rate Limiting 失效（DDoS 风险）\n- 权限缓存失效（性能大幅下降）\n\n**立即重启:** docker restart agentrt-redis-prod"
 
     # Redis 内存使用过高 (WARNING)
     - alert: RedisHighMemoryUsage
