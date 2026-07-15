@@ -1,5 +1,5 @@
 # =============================================================================
-# AgentOS Daemon Dockerfile - 生产级构建
+# AgentRT Daemon Dockerfile - 生产级构建
 # 版本: 0.1.0 (Production-Ready)
 # 最后更新: 2026-04-15
 #
@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 # 复制守护进程源码和 Python SDK
-COPY AgentRT/agentos/ ./agentos/
+COPY AgentRT/agentrt/ ./agentrt/
 COPY AgentRT/CMakeLists.txt ./
 
 # 创建 Python 虚拟环境并安装依赖
@@ -63,7 +63,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # 安装 Python SDK 和守护进程依赖（使用确定性版本锁定）
 RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0.41.2 \
-    && cd agentos/toolkit/python \
+    && cd agentrt/toolkit/python \
     && pip install --no-cache-dir -e . \
     && cd ../../daemon \
     && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
@@ -85,10 +85,10 @@ FROM ubuntu:24.04 AS runtime
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
-      org.opencontainers.image.title="AgentOS Daemon Services v0.1.1" \
-      org.opencontainers.image.description="AgentOS守护进程服务层 (生产级)" \
+      org.opencontainers.image.title="AgentRT Daemon Services v0.1.1" \
+      org.opencontainers.image.description="AgentRT守护进程服务层 (生产级)" \
       org.opencontainers.image.version="0.1.1" \
-      org.opencontainers.image.source="https://gitcode.com/spharx/agentos" \
+      org.opencontainers.image.source="https://gitcode.com/spharx/agentrt" \
       org.opencontainers.image.vendor="SPHARX Ltd."
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -115,10 +115,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && apt-get autoremove -y \
-    && groupadd -r -g 1000 agentos \
-    && useradd -l -r -u 1000 -g agentos -d /app -s /sbin/nologin agentos \
+    && groupadd -r -g 1000 agentrt \
+    && useradd -l -r -u 1000 -g agentrt -d /app -s /sbin/nologin agentrt \
     && mkdir -p /app/{bin,config,data,logs,run,supervisor/conf.d,tmp} \
-    && chown -R agentos:agentos /app \
+    && chown -R agentrt:agentrt /app \
     && chmod 750 /app \
     && chmod 700 /app/config /app/data /app/logs /app/run
 
@@ -131,21 +131,21 @@ COPY --from=builder /usr/local/lib/ /app/lib/
 # 复制 Supervisor 配置并设置权限
 COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 RUN mkdir -p /app/bin /app/lib /app/supervisor/conf.d \
-    && chown -R agentos:agentos /app/bin /app/lib /app/supervisor /etc/supervisor \
+    && chown -R agentrt:agentrt /app/bin /app/lib /app/supervisor /etc/supervisor \
     && find /app/bin -type f -exec chmod 550 {} \; \
     && chmod 640 /etc/supervisor/supervisord.conf
 
-USER agentos
+USER agentrt
 WORKDIR /app
 
 # 暴露最小必要端口（通过 Gateway 统一暴露）
 EXPOSE 18789/tcp 18790/tcp
 
-ENV AGENTOS_HOME=/app \
-    AGENTOS_CONFIG_DIR=/app/config \
-    AGENTOS_DATA_DIR=/app/data \
-    AGENTOS_LOG_DIR=/app/logs \
-    AGENTOS_RUN_DIR=/app/run \
+ENV AGENTRT_HOME=/app \
+    AGENTRT_CONFIG_DIR=/app/config \
+    AGENTRT_DATA_DIR=/app/data \
+    AGENTRT_LOG_DIR=/app/logs \
+    AGENTRT_RUN_DIR=/app/run \
     LOG_LEVEL=INFO \
     TZ=Asia/Shanghai \
     LANG=C.UTF-8 \
@@ -190,5 +190,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim-tiny=9.0.1568-1ubuntu1 \
     && rm -rf /var/lib/apt/lists/*
 
-USER agentos
+USER agentrt
 ENV LOG_LEVEL=DEBUG

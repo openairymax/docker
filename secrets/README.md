@@ -6,8 +6,8 @@ This directory stores Docker Swarm secret files for production deployment.
 
 ```bash
 # Create a secret from a file
-docker secret create agentos_jwt_secret ./jwt_secret.txt
-docker secret create agentos_postgres_password ./postgres_password.txt
+docker secret create agentrt_jwt_secret ./jwt_secret.txt
+docker secret create agentrt_postgres_password ./postgres_password.txt
 
 # List secrets
 docker secret ls

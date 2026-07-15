@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS Docker 快速启动脚本 (Quick Start Script)
+# AgentRT Docker 快速启动脚本 (Quick Start Script)
 # 版本: 0.1.0
 # 最后更新: 2026-05-04
 #
@@ -167,7 +167,7 @@ show_access_info() {
     local env="$1"
     echo ""
     echo -e "${GREEN}=========================================${NC}"
-    echo -e "${GREEN}  AgentOS ${env^^} 环境启动成功!${NC}"
+    echo -e "${GREEN}  AgentRT ${env^^} 环境启动成功!${NC}"
     echo -e "${GREEN}=========================================${NC}"
     echo ""
 

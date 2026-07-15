@@ -1,5 +1,5 @@
 # =============================================================================
-# AgentOS Docker Compose - 生产环境 (Production)
+# AgentRT Docker Compose - 生产环境 (Production)
 # 版本：2.0.1 (High-Availability Production Deployment)
 # 最后更新：2026-04-15
 #
@@ -50,7 +50,7 @@
 
 services:
   # ===========================================================================
-  # 内核服务集群 (Kernel Cluster) - AgentOS 微内核核心
+  # 内核服务集群 (Kernel Cluster) - AgentRT 微内核核心
   # 基于: Dockerfile.kernel (target: runtime)
   # 扩展方式: docker compose ... up -d --scale kernel=N
   #
@@ -58,7 +58,7 @@ services:
   # - 只读文件系统（防止运行时篡改）
   # - seccomp 安全配置文件（限制危险系统调用）
   # - 能力白名单（仅保留 NET_BIND_SERVICE）
-  # - 非 root 用户运行（agentos:1000）
+  # - 非 root 用户运行（agentrt:1000）
   # - 资源限制（CPU/Memory cgroups）
   # ===========================================================================
   kernel:
@@ -69,8 +69,8 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.1.0}
-    hostname: agentos-kernel
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.0}
+    hostname: agentrt-kernel
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
     # ⚠️ 生产环境不直接暴露 Kernel 端口！
@@ -85,24 +85,24 @@ services:
       # 配置文件（只读，防止篡改）
       - ./config:/app/config:ro
       # HeapStore 六大数据分区（基于 heapstore.h path_type_t 枚举）
-      - heapstore-prod-data:/var/lib/agentos/data:rw         # PATH_KERNEL
-      - heapstore-prod-logs:/var/lib/agentos/logs:rw          # PATH_LOGS
-      - heapstore-prod-registry:/var/lib/agentos/registry:rw   # PATH_REGISTRY
-      - heapstore-prod-traces:/var/lib/agentos/traces:rw       # PATH_TRACES
-      - heapstore-prod-ipc:/var/lib/agentos/ipc:rw            # PATH_KERNEL_IPC
-      - heapstore-prod-memory:/var/lib/agentos/memory:rw       # PATH_KERNEL_MEMORY
+      - heapstore-prod-data:/var/lib/agentrt/data:rw         # PATH_KERNEL
+      - heapstore-prod-logs:/var/lib/agentrt/logs:rw          # PATH_LOGS
+      - heapstore-prod-registry:/var/lib/agentrt/registry:rw   # PATH_REGISTRY
+      - heapstore-prod-traces:/var/lib/agentrt/traces:rw       # PATH_TRACES
+      - heapstore-prod-ipc:/var/lib/agentrt/ipc:rw            # PATH_KERNEL_IPC
+      - heapstore-prod-memory:/var/lib/agentrt/memory:rw       # PATH_KERNEL_MEMORY
 
     # 环境变量（生产级配置，敏感值从 .env 注入）
     environment:
       # 日志级别（生产使用 INFO，避免 DEBUG 泄露敏感信息）
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       # Cupolas 安全框架（生产严格模式）
-      - AGENTOS_CUPOLAS_ENABLED=true
-      - AGENTOS_PERMISSION_MODE=strict           # 严格权限控制
-      - AGENTOS_SANITIZER_MODE=strict             # 严格输入校验（防注入）
-      - AGENTOS_AUDIT_ENABLED=true                # 启用审计日志（合规要求）
+      - AGENTRT_CUPOLAS_ENABLED=true
+      - AGENTRT_PERMISSION_MODE=strict           # 严格权限控制
+      - AGENTRT_SANITIZER_MODE=strict             # 严格输入校验（防注入）
+      - AGENTRT_AUDIT_ENABLED=true                # 启用审计日志（合规要求）
       # HeapStore 生产配置
-      - HEAPSTORE_ROOT_PATH=/var/lib/agentos/data
+      - HEAPSTORE_ROOT_PATH=/var/lib/agentrt/data
       - HEAPSTORE_MAX_LOG_SIZE_MB=${HEAPSTORE_MAX_LOG_SIZE:-500}       # 生产增大日志上限
       - HEAPSTORE_LOG_RETENTION_DAYS=${HEAPSTORE_LOG_RETENTION:-90}    # 保留 90 天
       - HEAPSTORE_TRACE_RETENTION_DAYS=30                          # 追踪数据保留 30 天
@@ -110,9 +110,9 @@ services:
       - HEAPSTORE_CIRCUIT_THRESHOLD=${HEAPSTORE_CIRCUIT_THRESHOLD:-10}  # 提高熔断阈值
       - HEAPSTORE_CIRCUIT_TIMEOUT_SEC=${HEAPSTORE_CIRCUIT_TIMEOUT:-60} # 增加熔断超时
       # 连接池和生产参数
-      - AGENTOS_MAX_CONNECTIONS=${MAX_CONNECTIONS:-10000}
-      - AGENTOS_MEMORY_LIMIT=${MEMORY_LIMIT:-8192}              # MB
-      - AGENTOS_CPU_CORES=${CPU_CORES:-8}
+      - AGENTRT_MAX_CONNECTIONS=${MAX_CONNECTIONS:-10000}
+      - AGENTRT_MEMORY_LIMIT=${MEMORY_LIMIT:-8192}              # MB
+      - AGENTRT_CPU_CORES=${CPU_CORES:-8}
       # 时区和字符集
       - TZ=${TZ:-Asia/Shanghai}
       - LANG=C.UTF-8
@@ -120,7 +120,7 @@ services:
 
     # 网络（仅后端网络，不对外暴露）
     networks:
-      - agentos-backend-prod
+      - agentrt-backend-prod
 
     # 服务依赖（数据库必须健康才能启动）
     depends_on:
@@ -173,7 +173,7 @@ services:
         max-size: "${LOG_MAX_SIZE:-100m}"   # 单个日志文件最大 100MB
         max-file: "${LOG_MAX_FILE:-5}"      # 最多保留 5 个文件（共 500MB）
         labels: "service,environment,version"
-        tag: "agentos-kernel"
+        tag: "agentrt-kernel"
 
   # ===========================================================================
   # Gateway 网关集群 - 统一 API 入口（HTTP + WebSocket + stdio）
@@ -190,8 +190,8 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.1.0}
-    hostname: agentos-gateway
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.0}
+    hostname: agentrt-gateway
     restart: always
 
     # 对外暴露端口（唯一对外入口）
@@ -204,7 +204,7 @@ services:
       # Gateway 配置文件（含 CORS、限流、JWT、上游连接等）
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
       # Gateway 日志持久化（对应 gateway.yaml logging.access_log/error_log）
-      - gateway-prod-logs:/var/log/agentos:rw
+      - gateway-prod-logs:/var/log/agentrt:rw
 
     # 环境变量（生产级安全配置）
     environment:
@@ -221,7 +221,7 @@ services:
       GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-50}       # 单 IP QPS（防 DDoS）
       # 🔐 JWT 认证配置（必须从 .env 注入强密钥！）
       GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
-      GATEWAY_JWT_ISSUER: agentos-gateway-production
+      GATEWAY_JWT_ISSUER: agentrt-gateway-production
       GATEWAY_TOKEN_EXPIRY_HOURS: ${TOKEN_EXPIRY_HOURS:-8}
       GATEWAY_REFRESH_TOKEN_EXPIRY_DAYS: ${REFRESH_TOKEN_DAYS:-7}
       # 时区
@@ -230,8 +230,8 @@ services:
 
     # 网络（跨前后端网络，作为流量入口）
     networks:
-      - agentos-backend-prod               # 连接 Kernel、Redis、PostgreSQL
-      - agentos-frontend-prod              # 接收外部流量
+      - agentrt-backend-prod               # 连接 Kernel、Redis、PostgreSQL
+      - agentrt-frontend-prod              # 接收外部流量
 
     # 依赖关系
     depends_on:
@@ -281,7 +281,7 @@ services:
         max-size: "${LOG_MAX_SIZE:-100m}"
         max-file: "${LOG_MAX_FILE:-5}"
         labels: "service,environment"
-        tag: "agentos-gateway"
+        tag: "agentrt-gateway"
 
   # ===========================================================================
   # PostgreSQL 高可用数据库集群（HeapStore 慢速存储层）
@@ -296,8 +296,8 @@ services:
   # ===========================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: agentos-postgres-prod
-    hostname: agentos-postgres
+    container_name: agentrt-postgres-prod
+    hostname: agentrt-postgres
     restart: always
 
     # ⚠️ 生产环境不直接暴露端口！通过内网访问
@@ -311,8 +311,8 @@ services:
 
     # 环境变量（必须从 .env 注入强密码！）
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-agentos}
-      POSTGRES_USER: ${POSTGRES_USER:-agentos}
+      POSTGRES_DB: ${POSTGRES_DB:-agentrt}
+      POSTGRES_USER: ${POSTGRES_USER:-agentrt}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata       # 独立数据目录（性能优化）
       # 字符集和排序规则
@@ -320,11 +320,11 @@ services:
 
     # 网络
     networks:
-      - agentos-backend-prod
+      - agentrt-backend-prod
 
     # 健康检查
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentos} -d ${POSTGRES_DB:-agentos}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentrt} -d ${POSTGRES_DB:-agentrt}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -391,7 +391,7 @@ services:
       options:
         max-size: "${LOG_MAX_SIZE:-100m}"
         max-file: "${LOG_MAX_FILE:-5}"
-        tag: "agentos-postgres"
+        tag: "agentrt-postgres"
 
   # ===========================================================================
   # Redis 高可用缓存集群（IPC 快速通道 + 权限缓存 + 会话存储）
@@ -406,8 +406,8 @@ services:
   # ===========================================================================
   redis:
     image: redis:7.2-alpine
-    container_name: agentos-redis-prod
-    hostname: agentos-redis
+    container_name: agentrt-redis-prod
+    hostname: agentrt-redis
     restart: always
 
     # ⚠️ 生产环境不直接暴露端口！通过内网访问
@@ -445,7 +445,7 @@ services:
 
     # 网络
     networks:
-      - agentos-backend-prod
+      - agentrt-backend-prod
 
     # 健康检查
     healthcheck:
@@ -481,11 +481,11 @@ services:
       options:
         max-size: "${LOG_MAX_SIZE:-50m}"
         max-file: "${LOG_MAX_FILE:-5}"
-        tag: "agentos-redis"
+        tag: "agentrt-redis"
 
   # ===========================================================================
   # OpenLab 应用服务（Web UI + API Backend）- 生产模式
-  # 用途: AgentOS 可视化管理界面和交互式实验平台
+  # 用途: AgentRT 可视化管理界面和交互式实验平台
   # 注意: 此服务为可选组件，如未实现可注释掉整个 service 块
   # ===========================================================================
   openlab:
@@ -493,9 +493,9 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production                     # 使用 production target
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.1.0}
-    container_name: agentos-openlab-prod
-    hostname: agentos-openlab
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.0}
+    container_name: agentrt-openlab-prod
+    hostname: agentrt-openlab
     restart: always
     profiles:
       - openlab                             # 使用 profile 按需启动
@@ -516,9 +516,9 @@ services:
       OPENLAB_DEBUG: false                  # ❌ 生产禁止 DEBUG 模式
       OPENLAB_PORT: 443
       # 连接 Gateway 作为统一 API 入口（推荐）
-      AGENTOS_GATEWAY_URL: http://gateway:18789
+      AGENTRT_GATEWAY_URL: http://gateway:18789
       # 直接连接 Kernel IPC（备用通道）
-      AGENTOS_IPC_URL: http://kernel:18080
+      AGENTRT_IPC_URL: http://kernel:18080
       # 数据库连接（从 .env 注入）
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0  # 🔐 含密码的 Redis URL
@@ -530,7 +530,7 @@ services:
 
     # 网络
     networks:
-      - agentos-frontend-prod               # 通过 Gateway 访问后端
+      - agentrt-frontend-prod               # 通过 Gateway 访问后端
 
     # 依赖关系
     depends_on:
@@ -582,8 +582,8 @@ services:
   # ===========================================================================
   prometheus:
     image: prom/prometheus:v2.50.0
-    container_name: agentos-prometheus-prod
-    hostname: agentos-prometheus
+    container_name: agentrt-prometheus-prod
+    hostname: agentrt-prometheus
     restart: always
 
     # 端口映射（限制内网或 VPN 访问）
@@ -611,7 +611,7 @@ services:
 
     # 网络
     networks:
-      - agentos-backend-prod                 # 需要拉取所有服务的 /metrics
+      - agentrt-backend-prod                 # 需要拉取所有服务的 /metrics
 
     # 健康检查
     healthcheck:
@@ -647,7 +647,7 @@ services:
       options:
         max-size: "${LOG_MAX_SIZE:-50m}"
         max-file: "${LOG_MAX_FILE:-3}"
-        tag: "agentos-prometheus"
+        tag: "agentrt-prometheus"
 
   # ===========================================================================
   # Grafana 可视化平台（仪表盘 + 告警通知）
@@ -656,8 +656,8 @@ services:
   # ===========================================================================
   grafana:
     image: grafana/grafana:10.3.0
-    container_name: agentos-grafana-prod
-    hostname: agentos-grafana
+    container_name: agentrt-grafana-prod
+    hostname: agentrt-grafana
     restart: always
 
     # 端口映射（生产环境建议通过反向代理 + SSL 暴露）
@@ -684,7 +684,7 @@ services:
 
     # 网络
     networks:
-      - agentos-frontend-prod               # 外部可访问
+      - agentrt-frontend-prod               # 外部可访问
 
     # 依赖关系
     depends_on:
@@ -724,22 +724,22 @@ services:
       options:
         max-size: "${LOG_MAX_SIZE:-20m}"
         max-file: "${LOG_MAX_FILE:-3}"
-        tag: "agentos-grafana"
+        tag: "agentrt-grafana"
 
   # ===========================================================================
   # Desktop Web前端 - Production
   # ===========================================================================
   desktop:
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-desktop:${AGENTOS_VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-desktop:${AGENTRT_VERSION:-latest}
     build:
       context: ..
       dockerfile: Docker/Dockerfile.desktop
-    container_name: agentos-desktop-prod
+    container_name: agentrt-desktop-prod
     restart: always
     ports:
       - "${DESKTOP_PORT:-8080}:80"
     networks:
-      - agentos-frontend-prod
+      - agentrt-frontend-prod
     depends_on:
       gateway:
         condition: service_healthy
@@ -775,7 +775,7 @@ services:
       options:
         max-size: "${LOG_MAX_SIZE:-10m}"
         max-file: "${LOG_MAX_FILE:-2}"
-        tag: "agentos-desktop"
+        tag: "agentrt-desktop"
 
 # =============================================================================
 # 网络配置（生产环境双层隔离 + 安全组模拟）
@@ -784,7 +784,7 @@ networks:
   # ---------------------------------------------------------------------------
   # 后端网络：Kernel + Database + Cache + Monitoring（完全隔离，不对外暴露）
   # ---------------------------------------------------------------------------
-  agentos-backend-prod:
+  agentrt-backend-prod:
     driver: bridge
     ipam:
       config:
@@ -797,7 +797,7 @@ networks:
   # ---------------------------------------------------------------------------
   # 前端网络：Gateway + OpenLab + Grafana（可通过防火墙规则控制访问）
   # ---------------------------------------------------------------------------
-  agentos-frontend-prod:
+  agentrt-frontend-prod:
     driver: bridge
     ipam:
       config:
@@ -815,85 +815,85 @@ volumes:
   # HeapStore 六大数据分区（对应 heapstore_path_type_t 枚举定义）
   # ---------------------------------------------------------------------------
   heapstore-prod-data:
-    name: agentos_prod_heapstore_data       # PATH_KERNEL - 核心业务数据
+    name: agentrt_prod_heapstore_data       # PATH_KERNEL - 核心业务数据
     driver: local
     # 可选：绑定挂载到高性能 SSD（取消注释并修改路径）
     # driver_opts:
     #   type: none
     #   o: bind
-    #   device: /data/ssd/agentos/kernel
+    #   device: /data/ssd/agentrt/kernel
 
   heapstore-prod-logs:
-    name: agentos_prod_heapstore_logs       # PATH_LOGS - 运行日志（高频写入）
+    name: agentrt_prod_heapstore_logs       # PATH_LOGS - 运行日志（高频写入）
     driver: local
 
   heapstore-prod-registry:
-    name: agentos_prod_heapstore_registry   # PATH_REGISTRY - 元数据/注册表
+    name: agentrt_prod_heapstore_registry   # PATH_REGISTRY - 元数据/注册表
     driver: local
 
   heapstore-prod-traces:
-    name: agentos_prod_heapstore_traces     # PATH_TRACES - 分布式追踪（Jaeger/OpenTelemetry）
+    name: agentrt_prod_heapstore_traces     # PATH_TRACES - 分布式追踪（Jaeger/OpenTelemetry）
     driver: local
 
   heapstore-prod-ipc:
-    name: agentos_prod_heapstore_ipc        # PATH_KERNEL_IPC - IPC 通信缓存
+    name: agentrt_prod_heapstore_ipc        # PATH_KERNEL_IPC - IPC 通信缓存
     driver: local
 
   heapstore-prod-memory:
-    name: agentos_prod_heapstore_memory     # PATH_KERNEL_MEMORY - 内存转储/堆快照
+    name: agentrt_prod_heapstore_memory     # PATH_KERNEL_MEMORY - 内存转储/堆快照
     driver: local
 
   # ---------------------------------------------------------------------------
   # 数据库持久化（ACID 保证 + WAL 归档）
   # ---------------------------------------------------------------------------
   postgres-prod-data:
-    name: agentos_prod_postgres_data        # PostgreSQL 数据目录（含 WAL）
+    name: agentrt_prod_postgres_data        # PostgreSQL 数据目录（含 WAL）
     driver: local
     # 可选：绑定挂载到独立磁盘（提高 I/O 性能）
     # driver_opts:
     #   type: none
     #   o: bind
-    #   device: /data/hdd/agentos/postgres
+    #   device: /data/hdd/agentrt/postgres
 
   redis-prod-data:
-    name: agentos_prod_redis_data           # Redis AOF 持久化数据
+    name: agentrt_prod_redis_data           # Redis AOF 持久化数据
     driver: local
     # 可选：绑定挂载到高性能 NVMe SSD（Redis I/O 密集）
     # driver_opts:
     #   type: none
     #   o: bind
-    #   device: /data/nvme/agentos/redis
+    #   device: /data/nvme/agentrt/redis
 
   # ---------------------------------------------------------------------------
   # 应用数据
   # ---------------------------------------------------------------------------
   openlab-prod-data:
-    name: agentos_prod_openlab_data         # OpenLab 用户数据/配置
+    name: agentrt_prod_openlab_data         # OpenLab 用户数据/配置
     driver: local
 
   openlab-ssl-certs:
-    name: agentos_prod_openlab_ssl          # SSL/TLS 证书（Let's Encrypt）
+    name: agentrt_prod_openlab_ssl          # SSL/TLS 证书（Let's Encrypt）
     driver: local
 
   # ---------------------------------------------------------------------------
   # 应用日志（Gateway访问日志 + 错误日志）
   # ---------------------------------------------------------------------------
   gateway-prod-logs:
-    name: agentos_prod_gateway_logs
+    name: agentrt_prod_gateway_logs
     driver: local
 
   # ---------------------------------------------------------------------------
   # 监控数据（时序数据库 - 高频写入）
   # ---------------------------------------------------------------------------
   prometheus-prod-data:
-    name: agentos_prod_prometheus_tsdb      # Prometheus TSDB（30天数据 ~20GB）
+    name: agentrt_prod_prometheus_tsdb      # Prometheus TSDB（30天数据 ~20GB）
     driver: local
     # 可选：绑定挂载到大容量 HDD
     # driver_opts:
     #   type: none
     #   o: bind
-    #   device: /data/hdd/agentos/prometheus
+    #   device: /data/hdd/agentrt/prometheus
 
   grafana-prod-data:
-    name: agentos_prod_grafana_data         # Grafana 仪表盘/用户配置/SQLite DB
+    name: agentrt_prod_grafana_data         # Grafana 仪表盘/用户配置/SQLite DB
     driver: local

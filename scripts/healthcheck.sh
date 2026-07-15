@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS Docker Health Check Script
+# AgentRT Docker Health Check Script
 # 版本: 0.1.0
-# 用途: 检查所有AgentOS服务的健康状态
+# 用途: 检查所有AgentRT服务的健康状态
 #
 # 使用方法:
 #   ./scripts/healthcheck.sh              # 基本检查
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
-COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-agentos}"
+COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-agentrt}"
 TIMEOUT=5
 RETRIES=3
 OUTPUT_FORMAT="text"
@@ -64,7 +64,7 @@ check_service_health() {
                 http://localhost:18789/api/v1/health 2>/dev/null || echo "000")
             ;;
         postgres)
-            if docker exec "${container_name}" pg_isready -U agentos -d agentos >/dev/null 2>&1; then
+            if docker exec "${container_name}" pg_isready -U agentrt -d agentrt >/dev/null 2>&1; then
                 http_code=200
             else
                 http_code=503
@@ -137,7 +137,7 @@ main() {
         echo ""
         echo "]"
     else
-        echo "=== AgentOS Service Health Check ==="
+        echo "=== AgentRT Service Health Check ==="
         echo "Timestamp: $(date -Iseconds)"
         echo ""
         printf "  %-12s %-12s %-10s %s\n" "SERVICE" "STATUS" "HTTP" "LATENCY"

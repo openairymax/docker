@@ -1,5 +1,5 @@
 # =============================================================================
-# AgentOS Docker Compose - 预发布环境 (Staging)
+# AgentRT Docker Compose - 预发布环境 (Staging)
 # 版本: 0.1.0 (Staging Environment)
 # 最后更新：2026-04-23
 #
@@ -41,9 +41,9 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-kernel:${AGENTOS_VERSION:-0.1.0}-staging
-    container_name: agentos-kernel-staging
-    hostname: agentos-kernel
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.0}-staging
+    container_name: agentrt-kernel-staging
+    hostname: agentrt-kernel
     restart: unless-stopped
 
     ports:
@@ -52,20 +52,20 @@ services:
 
     volumes:
       - ./config:/app/config:ro
-      - heapstore-staging-data:/var/lib/agentos/data:rw
-      - heapstore-staging-logs:/var/lib/agentos/logs:rw
-      - heapstore-staging-registry:/var/lib/agentos/registry:rw
-      - heapstore-staging-traces:/var/lib/agentos/traces:rw
-      - heapstore-staging-ipc:/var/lib/agentos/ipc:rw
-      - heapstore-staging-memory:/var/lib/agentos/memory:rw
+      - heapstore-staging-data:/var/lib/agentrt/data:rw
+      - heapstore-staging-logs:/var/lib/agentrt/logs:rw
+      - heapstore-staging-registry:/var/lib/agentrt/registry:rw
+      - heapstore-staging-traces:/var/lib/agentrt/traces:rw
+      - heapstore-staging-ipc:/var/lib/agentrt/ipc:rw
+      - heapstore-staging-memory:/var/lib/agentrt/memory:rw
 
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - AGENTOS_CUPOLAS_ENABLED=true
-      - AGENTOS_PERMISSION_MODE=strict
-      - AGENTOS_SANITIZER_MODE=strict
-      - AGENTOS_AUDIT_ENABLED=true
-      - HEAPSTORE_ROOT_PATH=/var/lib/agentos/data
+      - AGENTRT_CUPOLAS_ENABLED=true
+      - AGENTRT_PERMISSION_MODE=strict
+      - AGENTRT_SANITIZER_MODE=strict
+      - AGENTRT_AUDIT_ENABLED=true
+      - HEAPSTORE_ROOT_PATH=/var/lib/agentrt/data
       - HEAPSTORE_MAX_LOG_SIZE_MB=200
       - HEAPSTORE_LOG_RETENTION_DAYS=14
       - HEAPSTORE_TRACE_RETENTION_DAYS=7
@@ -77,7 +77,7 @@ services:
       - LC_ALL=C.UTF-8
 
     networks:
-      - agentos-backend-staging
+      - agentrt-backend-staging
 
     depends_on:
       postgres:
@@ -128,9 +128,9 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-gateway:${AGENTOS_VERSION:-0.1.0}-staging
-    container_name: agentos-gateway-staging
-    hostname: agentos-gateway
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.0}-staging
+    container_name: agentrt-gateway-staging
+    hostname: agentrt-gateway
     restart: unless-stopped
 
     ports:
@@ -139,7 +139,7 @@ services:
 
     volumes:
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
-      - gateway-staging-logs:/var/log/agentos:rw
+      - gateway-staging-logs:/var/log/agentrt:rw
 
     environment:
       GATEWAY_BIND_ADDRESS: ${GATEWAY_BIND_ADDRESS:-0.0.0.0}
@@ -150,15 +150,15 @@ services:
       GATEWAY_GLOBAL_QPS: ${GATEWAY_GLOBAL_QPS:-10000}
       GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-200}
       GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET}
-      GATEWAY_JWT_ISSUER: agentos-gateway-staging
+      GATEWAY_JWT_ISSUER: agentrt-gateway-staging
       TOKEN_EXPIRY_HOURS: ${TOKEN_EXPIRY_HOURS:-4}
       REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-2}
       TZ: ${TZ:-Asia/Shanghai}
       LANG: C.UTF-8
 
     networks:
-      - agentos-backend-staging
-      - agentos-frontend-staging
+      - agentrt-backend-staging
+      - agentrt-frontend-staging
 
     depends_on:
       kernel:
@@ -204,8 +204,8 @@ services:
   # ===========================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: agentos-postgres-staging
-    hostname: agentos-postgres
+    container_name: agentrt-postgres-staging
+    hostname: agentrt-postgres
     restart: unless-stopped
 
     ports:
@@ -215,17 +215,17 @@ services:
       - postgres-staging-data:/var/lib/postgresql/data:rw
 
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-agentos_staging}
-      POSTGRES_USER: ${POSTGRES_USER:-agentos}
+      POSTGRES_DB: ${POSTGRES_DB:-agentrt_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-agentrt}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
 
     networks:
-      - agentos-backend-staging
+      - agentrt-backend-staging
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentos} -d ${POSTGRES_DB:-agentos_staging}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentrt} -d ${POSTGRES_DB:-agentrt_staging}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -282,8 +282,8 @@ services:
   # ===========================================================================
   redis:
     image: redis:7.2-alpine
-    container_name: agentos-redis-staging
-    hostname: agentos-redis
+    container_name: agentrt-redis-staging
+    hostname: agentrt-redis
     restart: unless-stopped
 
     ports:
@@ -303,7 +303,7 @@ services:
       --loglevel notice
 
     networks:
-      - agentos-backend-staging
+      - agentrt-backend-staging
 
     healthcheck:
       test: ["CMD", "sh", "-c", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
@@ -343,8 +343,8 @@ services:
   # ===========================================================================
   prometheus:
     image: prom/prometheus:v2.50.0
-    container_name: agentos-prometheus-staging
-    hostname: agentos-prometheus
+    container_name: agentrt-prometheus-staging
+    hostname: agentrt-prometheus
     restart: unless-stopped
 
     ports:
@@ -363,7 +363,7 @@ services:
       - '--web.enable-admin-api'
 
     networks:
-      - agentos-backend-staging
+      - agentrt-backend-staging
 
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
@@ -403,8 +403,8 @@ services:
   # ===========================================================================
   grafana:
     image: grafana/grafana:10.3.0
-    container_name: agentos-grafana-staging
-    hostname: agentos-grafana
+    container_name: agentrt-grafana-staging
+    hostname: agentrt-grafana
     restart: unless-stopped
 
     ports:
@@ -425,7 +425,7 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
     networks:
-      - agentos-frontend-staging
+      - agentrt-frontend-staging
 
     depends_on:
       - prometheus
@@ -471,9 +471,9 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-openlab:${AGENTOS_VERSION:-0.1.0}-staging
-    container_name: agentos-openlab-staging
-    hostname: agentos-openlab
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.0}-staging
+    container_name: agentrt-openlab-staging
+    hostname: agentrt-openlab
     restart: unless-stopped
     profiles:
       - openlab
@@ -489,8 +489,8 @@ services:
     environment:
       OPENLAB_DEBUG: false
       OPENLAB_PORT: 443
-      AGENTOS_GATEWAY_URL: http://gateway:18789
-      AGENTOS_IPC_URL: http://kernel:18080
+      AGENTRT_GATEWAY_URL: http://gateway:18789
+      AGENTRT_IPC_URL: http://kernel:18080
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       OPENLAB_SECRET_KEY: ${OPENLAB_SECRET_KEY}
@@ -498,7 +498,7 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
 
     networks:
-      - agentos-frontend-staging
+      - agentrt-frontend-staging
 
     depends_on:
       gateway:
@@ -544,16 +544,16 @@ services:
   # Desktop Web前端 - Staging
   # ===========================================================================
   desktop:
-    image: ${DOCKER_REGISTRY:-spharx}/agentos-desktop:${AGENTOS_VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-desktop:${AGENTRT_VERSION:-latest}
     build:
       context: ..
       dockerfile: Docker/Dockerfile.desktop
-    container_name: agentos-desktop-staging
+    container_name: agentrt-desktop-staging
     restart: unless-stopped
     ports:
       - "${DESKTOP_PORT:-8080}:80"
     networks:
-      - agentos-frontend-staging
+      - agentrt-frontend-staging
     depends_on:
       gateway:
         condition: service_healthy
@@ -592,13 +592,13 @@ services:
         tag: "{{.Name}}"
 
 networks:
-  agentos-backend-staging:
+  agentrt-backend-staging:
     driver: bridge
     ipam:
       config:
         - subnet: ${BACKEND_SUBNET:-172.29.0.0/16}
 
-  agentos-frontend-staging:
+  agentrt-frontend-staging:
     driver: bridge
     ipam:
       config:
@@ -606,38 +606,38 @@ networks:
 
 volumes:
   heapstore-staging-data:
-    name: agentos_staging_heapstore_data
+    name: agentrt_staging_heapstore_data
     driver: local
   heapstore-staging-logs:
-    name: agentos_staging_heapstore_logs
+    name: agentrt_staging_heapstore_logs
     driver: local
   heapstore-staging-registry:
-    name: agentos_staging_heapstore_registry
+    name: agentrt_staging_heapstore_registry
     driver: local
   heapstore-staging-traces:
-    name: agentos_staging_heapstore_traces
+    name: agentrt_staging_heapstore_traces
     driver: local
   heapstore-staging-ipc:
-    name: agentos_staging_heapstore_ipc
+    name: agentrt_staging_heapstore_ipc
     driver: local
   heapstore-staging-memory:
-    name: agentos_staging_heapstore_memory
+    name: agentrt_staging_heapstore_memory
     driver: local
   postgres-staging-data:
-    name: agentos_staging_postgres_data
+    name: agentrt_staging_postgres_data
     driver: local
   redis-staging-data:
-    name: agentos_staging_redis_data
+    name: agentrt_staging_redis_data
     driver: local
   gateway-staging-logs:
-    name: agentos_staging_gateway_logs
+    name: agentrt_staging_gateway_logs
     driver: local
   openlab-staging-data:
-    name: agentos_staging_openlab_data
+    name: agentrt_staging_openlab_data
     driver: local
   prometheus-staging-data:
-    name: agentos_staging_prometheus_tsdb
+    name: agentrt_staging_prometheus_tsdb
     driver: local
   grafana-staging-data:
-    name: agentos_staging_grafana_data
+    name: agentrt_staging_grafana_data
     driver: local

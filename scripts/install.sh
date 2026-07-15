@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS Docker 一键安装脚本
+# AgentRT Docker 一键安装脚本
 # 版本: 0.1.0
 # 支持: Linux (Ubuntu/Debian/CentOS), macOS
 # =============================================================================
@@ -10,10 +10,10 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # 常量定义
 # -----------------------------------------------------------------------------
-readonly AGENTOS_VERSION="${AGENTOS_VERSION:-0.1.0}"
-readonly INSTALL_DIR="${HOME}/.agentos"
+readonly AGENTRT_VERSION="${AGENTRT_VERSION:-0.1.0}"
+readonly INSTALL_DIR="${HOME}/.agentrt"
 readonly DOCKER_CONFIG_DIR="${HOME}/.docker"
-readonly REPO_URL="https://github.com/spharx/agentos"
+readonly REPO_URL="https://github.com/spharx/agentrt"
 readonly INSTALL_SCRIPT_URL="${REPO_URL}/raw/main/docker/scripts/install.sh"
 
 # 颜色输出
@@ -35,7 +35,7 @@ show_logo() {
 /_/ |_|\__,_/_/  /____/\__,_/ /_/ /_/_/  \___/
 
 EOF
-    echo -e "${NC}Docker Edition v${AGENTOS_VERSION}"
+    echo -e "${NC}Docker Edition v${AGENTRT_VERSION}"
     echo ""
 }
 
@@ -86,9 +86,9 @@ check_prerequisites() {
 # 下载 Docker 模块
 # -----------------------------------------------------------------------------
 download_module() {
-    echo -e "${BLUE}[2/5] 下载 AgentOS Docker 模块...${NC}"
+    echo -e "${BLUE}[2/5] 下载 AgentRT Docker 模块...${NC}"
 
-    local target_dir="${INSTALL_DIR}/docker-${AGENTOS_VERSION}"
+    local target_dir="${INSTALL_DIR}/docker-${AGENTRT_VERSION}"
     local docker_dir="${INSTALL_DIR}/docker"
 
     # 如果已存在，跳过下载
@@ -108,18 +108,18 @@ download_module() {
     # 克隆或下载
     if command -v git &> /dev/null; then
         echo "从 GitHub 克隆..."
-        git clone --depth 1 --branch "v${AGENTOS_VERSION}" \
-            "https://github.com/spharx/agentos.git" \
+        git clone --depth 1 --branch "v${AGENTRT_VERSION}" \
+            "https://github.com/spharx/agentrt.git" \
             "${INSTALL_DIR}/temp-clone" 2>/dev/null || \
-        git clone --depth 1 "https://github.com/spharx/agentos.git" "${INSTALL_DIR}/temp-clone"
+        git clone --depth 1 "https://github.com/spharx/agentrt.git" "${INSTALL_DIR}/temp-clone"
         mv "${INSTALL_DIR}/temp-clone/docker" "${docker_dir}"
         rm -rf "${INSTALL_DIR}/temp-clone"
     else
         echo "下载 archive..."
-        curl -fsSL "${REPO_URL}/archive/refs/tags/v${AGENTOS_VERSION}.tar.gz" | \
+        curl -fsSL "${REPO_URL}/archive/refs/tags/v${AGENTRT_VERSION}.tar.gz" | \
             tar -xz -C "${INSTALL_DIR}"
-        mv "${INSTALL_DIR}/agentos-${AGENTOS_VERSION#v}/docker" "${docker_dir}"
-        rm -rf "${INSTALL_DIR}/agentos-${AGENTOS_VERSION#v}"
+        mv "${INSTALL_DIR}/agentrt-${AGENTRT_VERSION#v}/docker" "${docker_dir}"
+        rm -rf "${INSTALL_DIR}/agentrt-${AGENTRT_VERSION#v}"
     fi
 
     echo -e "${GREEN}✓ 下载完成: ${docker_dir}${NC}"
@@ -166,7 +166,7 @@ prepare_images() {
     case "${choice:-1}" in
         1)
             echo "从 Docker Hub 拉取镜像..."
-            docker pull "spharx/agentos-kernel:${AGENTOS_VERSION}" || \
+            docker pull "spharx/agentrt-kernel:${AGENTRT_VERSION}" || \
             echo -e "${YELLOW}⚠️ 镜像不存在，请选择选项 2 本地构建${NC}"
             ;;
         2)
@@ -193,14 +193,14 @@ complete_installation() {
     local bin_dir="${HOME}/.local/bin"
     mkdir -p "${bin_dir}"
 
-    # 创建 agentos 命令
-    cat > "${bin_dir}/agentos" <<'AGENTOS_EOF'
+    # 创建 agentrt 命令
+    cat > "${bin_dir}/agentrt" <<'AGENTRT_EOF'
 #!/bin/bash
-AGENTOS_DIR="${HOME}/.agentos/docker"
-cd "${AGENTOS_DIR}" 2>/dev/null || { echo "Error: AgentOS not installed"; exit 1; }
+AGENTRT_DIR="${HOME}/.agentrt/docker"
+cd "${AGENTRT_DIR}" 2>/dev/null || { echo "Error: AgentRT not installed"; exit 1; }
 docker compose -f docker-compose.yml "$@"
-AGENTOS_EOF
-    chmod +x "${bin_dir}/agentos"
+AGENTRT_EOF
+    chmod +x "${bin_dir}/agentrt"
 
     # 添加到 PATH (如果需要)
     if [[ ":$PATH:" != *":${bin_dir}:"* ]]; then
@@ -211,7 +211,7 @@ AGENTOS_EOF
 
     echo ""
     echo -e "${GREEN}=========================================${NC}"
-    echo -e "${GREEN}  ✅ AgentOS Docker 安装成功!${NC}"
+    echo -e "${GREEN}  ✅ AgentRT Docker 安装成功!${NC}"
     echo -e "${GREEN}=========================================${NC}"
     echo ""
     echo -e "${CYAN}快速开始:${NC}"
@@ -219,7 +219,7 @@ AGENTOS_EOF
     echo "  docker compose up -d"
     echo ""
     echo -e "${CYAN}或者使用快捷命令:${NC}"
-    echo "  agentos up -d"
+    echo "  agentrt up -d"
     echo ""
     echo -e "${CYAN}访问地址:${NC}"
     echo "  • Gateway API: http://localhost:18789"
@@ -228,9 +228,9 @@ AGENTOS_EOF
     echo "  • Redis:       localhost:6379"
     echo ""
     echo -e "${CYAN}常用命令:${NC}"
-    echo "  agentos logs -f          # 查看日志"
-    echo "  agentos ps               # 服务状态"
-    echo "  agentos down             # 停止服务"
+    echo "  agentrt logs -f          # 查看日志"
+    echo "  agentrt ps               # 服务状态"
+    echo "  agentrt down             # 停止服务"
     echo ""
 }
 
@@ -238,7 +238,7 @@ AGENTOS_EOF
 # 卸载
 # -----------------------------------------------------------------------------
 uninstall() {
-    echo -e "${RED}[卸载] AgentOS Docker${NC}"
+    echo -e "${RED}[卸载] AgentRT Docker${NC}"
     read -p "确定要卸载吗? (y/N): " confirm
     if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
         # 停止所有容器
@@ -246,7 +246,7 @@ uninstall() {
 
         # 删除文件
         rm -rf "${INSTALL_DIR}"
-        rm -f "${HOME}/.local/bin/agentos"
+        rm -f "${HOME}/.local/bin/agentrt"
 
         echo -e "${GREEN}✓ 卸载完成${NC}"
     fi
@@ -272,7 +272,7 @@ main() {
             uninstall
             ;;
         update|upgrade)
-            AGENTOS_VERSION="${2:-${AGENTOS_VERSION}}" && export AGENTOS_VERSION
+            AGENTRT_VERSION="${2:-${AGENTRT_VERSION}}" && export AGENTRT_VERSION
             check_prerequisites
             download_module
             configure_installation
@@ -281,9 +281,9 @@ main() {
         *)
             echo "用法: $0 [install|uninstall|update]"
             echo ""
-            echo "  install   安装 AgentOS (默认)"
+            echo "  install   安装 AgentRT (默认)"
             echo "  update    更新到新版本"
-            echo "  uninstall 卸载 AgentOS"
+            echo "  uninstall 卸载 AgentRT"
             exit 1
             ;;
     esac

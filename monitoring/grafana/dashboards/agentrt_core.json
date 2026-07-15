@@ -103,7 +103,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(agentos_gateway_http_requests_total{job=\"agentos-gateway\"}[5m])",
+          "expr": "rate(agentrt_gateway_http_requests_total{job=\"agentrt-gateway\"}[5m])",
           "legendFormat": "{{method}} {{path}}",
           "range": true,
           "refId": "A"
@@ -200,7 +200,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(agentos_gateway_http_request_duration_seconds_bucket{job=\"agentos-gateway\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.50, sum(rate(agentrt_gateway_http_request_duration_seconds_bucket{job=\"agentrt-gateway\"}[5m])) by (le)) * 1000",
           "legendFormat": "p50",
           "range": true,
           "refId": "A"
@@ -211,7 +211,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(agentos_gateway_http_request_duration_seconds_bucket{job=\"agentos-gateway\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(agentrt_gateway_http_request_duration_seconds_bucket{job=\"agentrt-gateway\"}[5m])) by (le)) * 1000",
           "legendFormat": "p95",
           "range": true,
           "refId": "B"
@@ -222,7 +222,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(agentos_gateway_http_request_duration_seconds_bucket{job=\"agentos-gateway\"}[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(agentrt_gateway_http_request_duration_seconds_bucket{job=\"agentrt-gateway\"}[5m])) by (le)) * 1000",
           "legendFormat": "p99",
           "range": true,
           "refId": "C"
@@ -284,7 +284,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - (rate(agentos_gateway_http_requests_total{status=~\"5..\"}[5m]) / rate(agentos_gateway_http_requests_total[5m])))",
+          "expr": "100 * (1 - (rate(agentrt_gateway_http_requests_total{status=~\"5..\"}[5m]) / rate(agentrt_gateway_http_requests_total[5m])))",
           "legendFormat": "成功率",
           "range": true,
           "refId": "A"
@@ -350,7 +350,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - (agentos_kernel_memory_usage_bytes / agentos_kernel_memory_limit_bytes))",
+          "expr": "100 * (1 - (agentrt_kernel_memory_usage_bytes / agentrt_kernel_memory_limit_bytes))",
           "legendFormat": "内存使用率",
           "range": true,
           "refId": "A"
@@ -420,7 +420,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "agentos_kernel_ipc_queue_length",
+          "expr": "agentrt_kernel_ipc_queue_length",
           "legendFormat": "IPC 队列长度",
           "range": true,
           "refId": "A"
@@ -490,7 +490,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "agentos_kernel_active_connections",
+          "expr": "agentrt_kernel_active_connections",
           "legendFormat": "活跃连接",
           "range": true,
           "refId": "A"
@@ -752,7 +752,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "up{job=~\"agentos.*|postgresql|redis\"}",
+          "expr": "up{job=~\"agentrt.*|postgresql|redis\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -785,7 +785,7 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["agentos", "monitoring", "production"],
+  "tags": ["agentrt", "monitoring", "production"],
   "templating": {
     "list": [
       {
@@ -815,8 +815,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "AgentOS 核心监控",
-  "uid": "agentos-core",
+  "title": "AgentRT 核心监控",
+  "uid": "agentrt-core",
   "version": 1,
   "weekStart": ""
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AgentOS Docker Secrets 生成脚本
+# AgentRT Docker Secrets 生成脚本
 # 版本: 0.1.0
 # 用途: 为生产环境生成安全的密钥和密码文件
 #
@@ -105,7 +105,7 @@ generate_llm_keys() {
 
 main() {
     echo -e "${GREEN}========================================="
-    echo -e "  AgentOS Secrets 生成脚本"
+    echo -e "  AgentRT Secrets 生成脚本"
     echo -e "=========================================${NC}"
     echo ""
     

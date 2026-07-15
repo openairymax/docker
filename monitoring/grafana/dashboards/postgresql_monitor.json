@@ -553,7 +553,7 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["postgres", "database", "agentos"],
+  "tags": ["postgres", "database", "agentrt"],
   "templating": {
     "list": [
       {

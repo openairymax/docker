@@ -19,8 +19,8 @@ datasources:
     type: postgres
     access: proxy
     url: postgres:5432
-    database: agentos
-    user: agentos
+    database: agentrt
+    user: agentrt
     secureJsonData:
       password: ${POSTGRES_PASSWORD}
     jsonData:

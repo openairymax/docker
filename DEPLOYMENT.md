@@ -1,4 +1,4 @@
-# AgentOS Docker 部署指南
+# AgentRT Docker 部署指南
 
 **版本**: 0.1.0  
 **最后更新**: 2026-04-23
@@ -50,10 +50,10 @@
 
 ```bash
 # 下载并运行安装脚本
-curl -fsSL https://raw.githubusercontent.com/spharx/agentos/main/docker/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/spharx/agentrt/main/docker/scripts/install.sh | bash
 
 # 或手动下载后运行
-wget https://raw.githubusercontent.com/spharx/agentos/main/docker/scripts/install.sh
+wget https://raw.githubusercontent.com/spharx/agentrt/main/docker/scripts/install.sh
 chmod +x install.sh
 ./install.sh
 ```
@@ -62,8 +62,8 @@ chmod +x install.sh
 
 ```bash
 # 克隆仓库
-git clone https://github.com/spharx/agentos.git
-cd agentos
+git clone https://github.com/spharx/agentrt.git
+cd agentrt
 
 # 启动开发环境
 make dev
@@ -73,8 +73,8 @@ make dev
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/spharx/agentos.git
-cd agentos/docker
+git clone https://github.com/spharx/agentrt.git
+cd agentrt/docker
 
 # 2. 配置环境变量
 cp .env.example .env
@@ -156,11 +156,11 @@ docker compose -f docker-compose.prod.yml ps
 
 ```bash
 # 使用提供的 Nginx 配置
-sudo cp config/nginx/agentos-proxy.conf /etc/nginx/conf.d/
-sudo cp config/nginx/agentos-proxy.conf /etc/nginx/sites-enabled/
+sudo cp config/nginx/agentrt-proxy.conf /etc/nginx/conf.d/
+sudo cp config/nginx/agentrt-proxy.conf /etc/nginx/sites-enabled/
 
 # 替换 SSL 证书路径
-sudo vim /etc/nginx/conf.d/agentos-proxy.conf
+sudo vim /etc/nginx/conf.d/agentrt-proxy.conf
 
 # 测试配置
 sudo nginx -t
@@ -193,13 +193,13 @@ docker compose --profile monitoring up -d
 
 ### 预置仪表盘
 
-- [AgentOS 核心监控](monitoring/grafana/dashboards/agentos_core.json) - QPS/延迟/成功率/资源使用
+- [AgentRT 核心监控](monitoring/grafana/dashboards/agentrt_core.json) - QPS/延迟/成功率/资源使用
 - [PostgreSQL 数据库](monitoring/grafana/dashboards/postgresql_monitor.json) - TPS/缓存命中/慢查询
 - [Redis 缓存](monitoring/grafana/dashboards/redis_monitor.json) - 命中率/内存/键空间
 
 ### 告警规则
 
-告警规则定义在 `monitoring/rules/agentos_alerts.yml`，包含：
+告警规则定义在 `monitoring/rules/agentrt_alerts.yml`，包含：
 
 - **服务可用性** (Critical)
 - **性能指标** (Warning)
@@ -215,7 +215,7 @@ docker compose --profile monitoring up -d
 receivers:
   - name: 'slack-warnings'
     slack_configs:
-      - channel: '#agentos-alerts'
+      - channel: '#agentrt-alerts'
         send_resolved: true
         title: '[{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}'
 ```
@@ -257,7 +257,7 @@ receivers:
 crontab -e
 
 # 添加每日凌晨 2 点备份
-0 2 * * * /path/to/docker/scripts/backup.sh backup --output /backup/agentos
+0 2 * * * /path/to/docker/scripts/backup.sh backup --output /backup/agentrt
 ```
 
 ---
@@ -270,8 +270,8 @@ crontab -e
 
 ```bash
 # 查看容器日志
-docker logs agentos-kernel-dev
-docker logs agentos-gateway-dev
+docker logs agentrt-kernel-dev
+docker logs agentrt-gateway-dev
 
 # 检查容器状态
 docker compose ps
@@ -281,17 +281,17 @@ docker compose ps
 
 ```bash
 # 验证 PostgreSQL 健康
-docker exec agentos-postgres-dev pg_isready -U agentos
+docker exec agentrt-postgres-dev pg_isready -U agentrt
 
 # 检查连接数
-docker exec agentos-postgres-dev psql -U agentos -c "SELECT count(*) FROM pg_stat_activity;"
+docker exec agentrt-postgres-dev psql -U agentrt -c "SELECT count(*) FROM pg_stat_activity;"
 ```
 
 #### 3. Redis 连接失败
 
 ```bash
 # 测试 Redis 连接（使用REDISCLI_AUTH避免密码泄露）
-docker exec agentos-redis-dev sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
+docker exec agentrt-redis-dev sh -c 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping'
 ```
 
 #### 4. 端口冲突
@@ -312,10 +312,10 @@ vim .env  # 修改 GATEWAY_PORT 等配置
 docker stats
 
 # 查看网络配置
-docker network inspect agentos_backend
+docker network inspect agentrt_backend
 
 # 查看卷列表
-docker volume ls | grep agentos
+docker volume ls | grep agentrt
 
 # 运行健康检查
 ./scripts/healthcheck.sh --json
@@ -376,7 +376,7 @@ services:
 brew install aquasecurity/trivy/trivy
 
 # 扫描镜像
-trivy image spharx/agentos-kernel:0.1.0
+trivy image spharx/agentrt-kernel:0.1.0
 
 # 扫描文件系统
 trivy fs --severity CRITICAL,HIGH .
@@ -431,8 +431,8 @@ cat /etc/docker/daemon.json
 
 ## 📞 支持
 
-- **问题反馈**: https://github.com/spharx/agentos/issues
-- **文档**: https://github.com/spharx/agentos#readme
+- **问题反馈**: https://github.com/spharx/agentrt/issues
+- **文档**: https://github.com/spharx/agentrt#readme
 - **Discord**: https://discord.gg/spharx
 - **邮件**: support@spharx.cn
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# AgentOS Docker Secrets 部署指南
+# AgentRT Docker Secrets 部署指南
 # 版本: 0.1.0 (团队E - 第09轮次)
 # 最后更新: 2026-05-05
 # BAN合规: BAN-43, BAN-57
@@ -7,7 +7,7 @@
 
 ## 概述
 
-本指南描述如何使用 Docker Swarm Secrets 管理 AgentOS 的敏感信息（密码、API 密钥、JWT 密钥等），符合 BAN-43（禁止硬编码密钥）和 BAN-57（CORS 安全配置）规范。
+本指南描述如何使用 Docker Swarm Secrets 管理 AgentRT 的敏感信息（密码、API 密钥、JWT 密钥等），符合 BAN-43（禁止硬编码密钥）和 BAN-57（CORS 安全配置）规范。
 
 ### 为什么需要 Docker Secrets？
 
@@ -58,14 +58,14 @@ docker swarm join --token <WORKER_TOKEN> <MANAGER_IP>:2377
 ```bash
 # 方法1: 从文件创建（推荐）
 openssl rand -base64 48 | tr -d '\n=' > /tmp/jwt_secret.txt
-docker secret create agentos_jwt_secret /tmp/jwt_secret.txt
+docker secret create agentrt_jwt_secret /tmp/jwt_secret.txt
 shred -u /tmp/jwt_secret.txt
 
 # 方法2: 从标准输入
-openssl rand -base64 32 | docker secret create agentos_postgres_password -
+openssl rand -base64 32 | docker secret create agentrt_postgres_password -
 
 # 方法3: 从环境变量（不推荐，可能在历史记录中暴露）
-echo "$MY_PASSWORD" | docker secret create agentos_redis_password -
+echo "$MY_PASSWORD" | docker secret create agentrt_redis_password -
 ```
 
 ### 3. 创建所有必需的 Secrets
@@ -75,23 +75,23 @@ echo "$MY_PASSWORD" | docker secret create agentos_redis_password -
 # secrets/create-all-secrets.sh
 set -euo pipefail
 
-echo "Creating AgentOS Docker Secrets..."
+echo "Creating AgentRT Docker Secrets..."
 
 # JWT 密钥 (256-bit, base64url)
-openssl rand -base64 48 | tr -d '\n=' | docker secret create agentos_jwt_secret_v1 -
+openssl rand -base64 48 | tr -d '\n=' | docker secret create agentrt_jwt_secret_v1 -
 
 # PostgreSQL 密码 (32字符)
-openssl rand -base64 32 | tr -d '\n' | docker secret create agentos_postgres_password_v1 -
+openssl rand -base64 32 | tr -d '\n' | docker secret create agentrt_postgres_password_v1 -
 
 # Redis 密码 (64字符 hex)
-openssl rand -hex 32 | docker secret create agentos_redis_password_v1 -
+openssl rand -hex 32 | docker secret create agentrt_redis_password_v1 -
 
 # Grafana 管理员密码
-openssl rand -base64 24 | tr -d '\n' | docker secret create agentos_grafana_password_v1 -
+openssl rand -base64 24 | tr -d '\n' | docker secret create agentrt_grafana_password_v1 -
 
 # OpenLab 密钥 (Django SECRET_KEY)
 python3 -c "import secrets; print(secrets.token_urlsafe(50))" | \
-  docker secret create agentos_openlab_secret_key_v1 -
+  docker secret create agentrt_openlab_secret_key_v1 -
 
 echo "All secrets created successfully."
 docker secret ls
@@ -101,24 +101,24 @@ docker secret ls
 
 ```bash
 # 开发环境
-docker stack deploy -c docker-compose.yml agentos-dev
+docker stack deploy -c docker-compose.yml agentrt-dev
 
 # 预发布环境
-docker stack deploy -c docker-compose.staging.yml agentos-staging
+docker stack deploy -c docker-compose.staging.yml agentrt-staging
 
 # 生产环境
-docker stack deploy -c docker-compose.prod.yml agentos-prod
+docker stack deploy -c docker-compose.prod.yml agentrt-prod
 ```
 
 ## Secrets 清单
 
 | Secret 名称                        | 用途                  | 生成命令                                    | 轮换周期 |
 |------------------------------------|-----------------------|---------------------------------------------|----------|
-| `agentos_jwt_secret_v1`            | JWT 签名密钥          | `openssl rand -base64 48 \| tr -d '\n='`    | 90 天    |
-| `agentos_postgres_password_v1`     | PostgreSQL 数据库密码 | `openssl rand -base64 32 \| tr -d '\n'`     | 90 天    |
-| `agentos_redis_password_v1`        | Redis 缓存密码        | `openssl rand -hex 32`                      | 90 天    |
-| `agentos_grafana_password_v1`      | Grafana 管理员密码    | `openssl rand -base64 24 \| tr -d '\n'`     | 90 天    |
-| `agentos_openlab_secret_key_v1`    | OpenLab 应用密钥      | `python3 -c "import secrets; print(secrets.token_urlsafe(50))"` | 180 天 |
+| `agentrt_jwt_secret_v1`            | JWT 签名密钥          | `openssl rand -base64 48 \| tr -d '\n='`    | 90 天    |
+| `agentrt_postgres_password_v1`     | PostgreSQL 数据库密码 | `openssl rand -base64 32 \| tr -d '\n'`     | 90 天    |
+| `agentrt_redis_password_v1`        | Redis 缓存密码        | `openssl rand -hex 32`                      | 90 天    |
+| `agentrt_grafana_password_v1`      | Grafana 管理员密码    | `openssl rand -base64 24 \| tr -d '\n'`     | 90 天    |
+| `agentrt_openlab_secret_key_v1`    | OpenLab 应用密钥      | `python3 -c "import secrets; print(secrets.token_urlsafe(50))"` | 180 天 |
 
 ## Compose 文件中使用 Secrets
 
@@ -128,7 +128,7 @@ docker stack deploy -c docker-compose.prod.yml agentos-prod
 services:
   gateway:
     secrets:
-      - source: agentos_jwt_secret_v1
+      - source: agentrt_jwt_secret_v1
         target: /run/secrets/jwt_secret
         mode: 0400
     environment:
@@ -136,14 +136,14 @@ services:
 
   postgres:
     secrets:
-      - source: agentos_postgres_password_v1
+      - source: agentrt_postgres_password_v1
         target: /run/secrets/postgres_password
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
 
   redis:
     secrets:
-      - source: agentos_redis_password_v1
+      - source: agentrt_redis_password_v1
         target: /run/secrets/redis_password
     command: >
       redis-server
@@ -155,28 +155,28 @@ services:
 ### Step 1: 创建新版本密钥
 
 ```bash
-openssl rand -base64 48 | tr -d '\n=' | docker secret create agentos_jwt_secret_v2 -
+openssl rand -base64 48 | tr -d '\n=' | docker secret create agentrt_jwt_secret_v2 -
 ```
 
 ### Step 2: 更新 Compose 文件
 
 ```yaml
 secrets:
-  - source: agentos_jwt_secret_v2  # 新版本
+  - source: agentrt_jwt_secret_v2  # 新版本
     target: /run/secrets/jwt_secret
 ```
 
 ### Step 3: 滚动更新
 
 ```bash
-docker service update --secret-rm agentos_jwt_secret_v1 \
-  --secret-add agentos_jwt_secret_v2 agentos-prod_gateway
+docker service update --secret-rm agentrt_jwt_secret_v1 \
+  --secret-add agentrt_jwt_secret_v2 agentrt-prod_gateway
 ```
 
 ### Step 4: 移除旧密钥（确认无问题后）
 
 ```bash
-docker secret rm agentos_jwt_secret_v1
+docker secret rm agentrt_jwt_secret_v1
 ```
 
 ## 安全检查清单
@@ -195,10 +195,10 @@ docker secret rm agentos_jwt_secret_v1
 
 | 迁移前 (.env)                | 迁移后 (Secrets)                    |
 |------------------------------|-------------------------------------|
-| `JWT_SECRET=my_secret`       | `DOCKER-SECRET:agentos_jwt_secret`  |
-| `POSTGRES_PASSWORD=mypass`   | `DOCKER-SECRET:agentos_postgres_password` |
-| `REDIS_PASSWORD=myredis`     | `DOCKER-SECRET:agentos_redis_password` |
-| `GRAFANA_PASSWORD=mygrafana` | `DOCKER-SECRET:agentos_grafana_password` |
+| `JWT_SECRET=my_secret`       | `DOCKER-SECRET:agentrt_jwt_secret`  |
+| `POSTGRES_PASSWORD=mypass`   | `DOCKER-SECRET:agentrt_postgres_password` |
+| `REDIS_PASSWORD=myredis`     | `DOCKER-SECRET:agentrt_redis_password` |
+| `GRAFANA_PASSWORD=mygrafana` | `DOCKER-SECRET:agentrt_grafana_password` |
 
 ## 故障排除
 
@@ -234,5 +234,5 @@ def get_secret(name, default=None):
 
 - [Docker Swarm Secrets 官方文档](https://docs.docker.com/engine/swarm/secrets/)
 - [CIS Docker Benchmark v1.6.0](https://www.cisecurity.org/benchmark/docker)
-- AgentOS BAN-43: 禁止硬编码密钥规范
-- AgentOS BAN-57: CORS 安全配置规范
+- AgentRT BAN-43: 禁止硬编码密钥规范
+- AgentRT BAN-57: CORS 安全配置规范

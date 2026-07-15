@@ -2,7 +2,7 @@
 apiVersion: 1
 
 providers:
-  - name: 'AgentOS Dashboards'
+  - name: 'AgentRT Dashboards'
     orgId: 1
     folder: ''
     type: file
