@@ -22,8 +22,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 WORKDIR /build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential=12.9 \
-    libpq-dev=16.4-1 \
+    build-essential=12.10ubuntu1 \
+    libpq-dev=16.14-0ubuntu0.24.04.1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY AgentRT/agentrt/openlab/openlab/requirements.txt ./requirements.txt
@@ -67,15 +67,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY AgentRT/agentrt/openlab/ ./app_src/
+COPY ecosystem/openlab/ ./app_src/
 RUN if [ -d ./app_src/openlab ]; then \
         cp -r ./app_src/openlab/* /app/backend/ && rm -rf ./app_src; \
     else \
         cp -r ./app_src/* /app/backend/ && rm -rf ./app_src; \
     fi
 
-COPY Docker/config/nginx/openlab.conf /etc/nginx/sites-available/default
-COPY Docker/scripts/openlab-entrypoint.sh /app/entrypoint.sh
+COPY products/docker/config/nginx/openlab.conf /etc/nginx/sites-available/default
+COPY products/docker/scripts/openlab-entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
@@ -113,12 +113,12 @@ LABEL stage="development"
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdb=13.1-3ubuntu2 \
-    strace=6.6-0ubuntu1 \
-    vim-tiny=9.0.1568-1ubuntu1 \
-    htop=3.2.2-2 \
-    net-tools=2.10-0.1ubuntu4 \
-    iputils-ping=3:20221126-1 \
+    gdb=15.1-1ubuntu1~24.04.1 \
+    strace=6.8-0ubuntu2 \
+    vim-tiny=2:9.1.0016-1ubuntu7.18 \
+    htop=3.3.0-4build1 \
+    net-tools=2.10-0.1ubuntu4.4 \
+    iputils-ping=3:20240117-1ubuntu0.1 \
     && rm -rf /var/lib/apt/lists/*
 
 USER openlab

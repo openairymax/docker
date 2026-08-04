@@ -14,8 +14,8 @@ services:
   # ===========================================================================
   kernel:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.kernel
+      context: ../..
+      dockerfile: products/docker/Dockerfile.kernel
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -54,8 +54,8 @@ services:
   # ===========================================================================
   market_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -94,8 +94,8 @@ services:
   # ===========================================================================
   monit_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -134,8 +134,8 @@ services:
   # ===========================================================================
   notify_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -172,8 +172,8 @@ services:
   # ===========================================================================
   observe_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -212,8 +212,8 @@ services:
   # ===========================================================================
   sched_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -250,8 +250,8 @@ services:
   # ===========================================================================
   tool_d:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: runtime
       args:
         BUILD_TYPE: Debug
@@ -288,8 +288,8 @@ services:
   # ===========================================================================
   gateway:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
       target: gateway
       args:
         BUILD_TYPE: Debug

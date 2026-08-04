@@ -32,45 +32,44 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG BUILD_TYPE=Release
 ARG ENABLE_TESTS=OFF
 
-# 安装构建依赖（固定版本以确保可重现性）
+# 安装构建依赖（固定版本，对齐 ubuntu 24.04 noble 仓库实际版本）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # C/C++ 编译工具链
-    build-essential=12.9ubuntu3 \
-    cmake=3.22.1-1ubuntu2 \
-    ninja-build=1.11.1-1 \
-    gcc-12=12.3.0-1ubuntu1 \
-    g++-12=12.3.0-1ubuntu1 \
+    build-essential=12.10ubuntu1 \
+    cmake=3.28.3-1build7 \
+    ninja-build=1.11.1-2 \
+    gcc-12=12.4.0-2ubuntu1~24.04.1 \
+    g++-12=12.4.0-2ubuntu1~24.04.1 \
     # 版本控制
-    git=2.34.1-1ubuntu1 \
+    git=1:2.43.0-1ubuntu7.3 \
     # SSL/TLS 库
-    libssl-dev=3.0.2-0ubuntu17.4 \
+    libssl-dev=3.0.13-0ubuntu3.12 \
     # YAML/JSON 解析库
-    libyaml-dev=0.2.5-7build2 \
-    libcjson-dev=1.7.15-1build1 \
-    libcurl4-openssl-dev=8.5.0-1ubuntu3 \
+    libyaml-dev=0.2.5-1build1 \
     libcjson-dev=1.7.17-1 \
-    libsqlite3-dev=3.45.1-1ubuntu2 \
+    libcurl4-openssl-dev=8.5.0-2ubuntu10.11 \
+    libsqlite3-dev=3.45.1-1ubuntu2.7 \
     # 包管理
-    pkg-config=1.8.1-1ubuntu2 \
+    pkg-config=1.8.1-2build1 \
     # 内存分析工具（仅 Debug 构建）
-    valgrind=1:3.19.0-1ubuntu3 \
+    valgrind=1:3.22.0-0ubuntu3 \
     # 静态分析工具
-    clang-tools-16=1:16.0.6-15~exp1 \
-    cppcheck=2.10.3-1 \
+    clang-tools-16=1:16.0.6-23ubuntu4 \
+    cppcheck=2.13.0-2ubuntu3 \
     # Python 构建工具
-    python3=3.12.3-0ubuntu1 \
-    python3-pip=23.0.1+dfsg-1 \
-    python3-venv=3.12.3-0ubuntu1 \
+    python3=3.12.3-0ubuntu2.1 \
+    python3-pip=24.0+dfsg-1ubuntu1.3 \
+    python3-venv=3.12.3-0ubuntu2.1 \
     # 网络工具
-    curl=8.4.0-3ubuntu2 \
-    ca-certificates=20230311 \
+    curl=8.5.0-2ubuntu10.11 \
+    ca-certificates=20260601~24.04.1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 设置工作目录
 WORKDIR /build
 
-# 复制源代码和构建配置
-COPY AgentRT/ ./AgentRT/
+# 复制源代码和构建配置（context 为伞仓根 airymaxhub/，agentrt 管理仓在此）
+COPY agentrt/ ./AgentRT/
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
 RUN cmake -S ./AgentRT -B . \
@@ -119,24 +118,26 @@ LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# 安装最小化运行时依赖（仅包含必要组件）
+# 安装最小化运行时依赖（仅包含必要组件；t64 包名对齐 ubuntu 24.04）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # TLS/SSL 证书
-    ca-certificates=20230311 \
+    ca-certificates=20260601~24.04.1 \
     # SSL 运行时库
-    libssl3=3.0.2-0ubuntu17.4 \
+    libssl3t64=3.0.13-0ubuntu3.12 \
     # YAML 解析运行时
-    libyaml-0-2=0.2.5-7build2 \
+    libyaml-0-2=0.2.5-1build1 \
     # JSON 解析运行时
-    libcjson4=1.7.15-1build1 \
+    libcjson1=1.7.17-1 \
     # HTTP 客户端（健康检查用）
-    curl=8.4.0-3ubuntu2 \
+    curl=8.5.0-2ubuntu10.11 \
     # 进程管理工具
-    procps=2:4.0.4-4ubuntu2 \
+    procps=2:4.0.4-4ubuntu3.2 \
     # 时区数据
-    tzdata=2023c-5ubuntu1 \
+    tzdata=2026c-0ubuntu0.24.04.1 \
     # GPG 密钥验证（包签名）
-    gnupg=2.2.40-1.1ubuntu1 \
+    gnupg=2.4.4-2ubuntu17.4 \
+    # 进程管理器（Daemon 全家桶生命周期）
+    supervisor=4.2.5-1ubuntu0.1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && apt-get autoremove -y \
@@ -154,14 +155,17 @@ RUN groupadd -r -g 1000 agentrt \
 COPY --from=builder /usr/local/bin/ /app/bin/
 COPY --from=builder /usr/local/lib/ /app/lib/
 
-# 复制生产环境配置模板（只读挂载点）
-COPY Docker/config/ /app/config/
+# 复制生产环境配置模板（只读挂载点，context 为伞仓根）
+COPY products/docker/config/ /app/config/
+
+# 复制 Supervisor 配置（Daemon 全家桶生命周期管理）
+COPY products/docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
 # 设置正确的文件权限
-RUN chown -R agentrt:agentrt /app/bin /app/lib /app/config \
+RUN chown -R agentrt:agentrt /app/bin /app/lib /app/config /etc/supervisor \
     && find /app/bin -type f -exec chmod 550 {} \; \
     && find /app/lib -type f -exec chmod 440 {} \; \
-    && chmod 755 /app/bin/agentrt-kernel
+    && chmod 640 /etc/supervisor/supervisord.conf
 
 # 切换到非 root 用户（必须在 VOLUME 和 EXPOSE 之前）
 USER agentrt
@@ -191,12 +195,12 @@ ENV AGENTRT_HOME=/app \
     # 安全相关
     GLIBC_TUNABLES=glibc.rtld.dynamic_sort=2
 
-# 健康检查（多层检测：TCP + HTTP + 进程存活）
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -fsS http://localhost:18080/api/v1/health > /dev/null || exit 1
+# 健康检查（进程存活：supervisord 为 PID 1，任一 daemon 存活即视为健康）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep -x supervisord > /dev/null || exit 1
 
-# 启动命令（使用 exec 形式确保 PID 1 正确接收信号）
-CMD ["./bin/agentrt-kernel", "--config", "/app/config"]
+# 启动命令：supervisord 管理全部 Daemon 生命周期（PID 1 正确接收信号）
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
 # =============================================================================
 # 阶段3: 调试版本 (Debug) - 仅用于开发调试，不推荐生产使用
@@ -207,13 +211,13 @@ USER root
 
 # 安装调试工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdb=13.1-3ubuntu2 \
-    strace=6.6-0ubuntu1 \
-    ltrace=0.7.3-20ubuntu1 \
-    vim-tiny=9.0.1568-1ubuntu1 \
-    htop=3.2.2-2 \
-    net-tools=2.10-0.1ubuntu4 \
-    iputils-ping=3:20221126-1 \
+    gdb=15.1-1ubuntu1~24.04.1 \
+    strace=6.8-0ubuntu2 \
+    ltrace=0.7.3-6.4ubuntu3 \
+    vim-tiny=2:9.1.0016-1ubuntu7.18 \
+    htop=3.3.0-4build1 \
+    net-tools=2.10-0.1ubuntu4.4 \
+    iputils-ping=3:20240117-1ubuntu0.1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER agentrt
