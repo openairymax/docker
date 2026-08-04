@@ -1,6 +1,6 @@
 """
 AgentRT Docker Integration Tests
-版本: 0.1.0
+版本: 0.1.1
 用途: 验证Docker Compose服务的基本功能
 
 运行方式:

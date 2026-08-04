@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # AgentRT Docker 一键安装脚本
-# 版本: 0.1.0
+# 版本: 0.1.1
 # 支持: Linux (Ubuntu/Debian/CentOS), macOS
 # =============================================================================
 
@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # 常量定义
 # -----------------------------------------------------------------------------
-readonly AGENTRT_VERSION="${AGENTRT_VERSION:-0.1.0}"
+readonly AGENTRT_VERSION="${AGENTRT_VERSION:-0.1.1}"
 readonly INSTALL_DIR="${HOME}/.agentrt"
 readonly DOCKER_CONFIG_DIR="${HOME}/.docker"
 readonly REPO_URL="https://github.com/spharx/agentrt"

@@ -1,6 +1,6 @@
 # =============================================================================
 # AgentRT Docker Compose - 预发布环境 (Staging)
-# 版本: 0.1.0 (Staging Environment)
+# 版本: 0.1.1 (Staging Environment)
 # 最后更新：2026-04-23
 #
 # 🎯 Staging 环境设计原则:
@@ -41,7 +41,7 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.0}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.1}-staging
     container_name: agentrt-kernel-staging
     hostname: agentrt-kernel
     restart: unless-stopped
@@ -128,7 +128,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.0}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.1}-staging
     container_name: agentrt-gateway-staging
     hostname: agentrt-gateway
     restart: unless-stopped
@@ -471,7 +471,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.0}-staging
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.1}-staging
     container_name: agentrt-openlab-staging
     hostname: agentrt-openlab
     restart: unless-stopped

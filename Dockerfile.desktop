@@ -1,6 +1,6 @@
 # ===========================================================================
 # AgentRT Desktop Frontend - Multi-stage Dockerfile
-# 版本: 0.1.0 (团队D - 第09轮次)
+# 版本: 0.1.1 (团队D - 第09轮次)
 # 用途: 构建Desktop Web前端的生产镜像（纯Vite构建，不含Tauri）
 # ===========================================================================
 
@@ -29,7 +29,7 @@ FROM nginx:1.27-alpine AS production
 LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
       org.opencontainers.image.title="AgentRT Desktop" \
       org.opencontainers.image.description="AgentRT Desktop Web Frontend" \
-      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.version="0.1.1" \
       org.opencontainers.image.source="https://gitcode.com/spharx/agentrt" \
       org.opencontainers.image.vendor="SPHARX Ltd."
 

@@ -69,7 +69,7 @@ services:
       args:
         BUILD_TYPE: Release
         ENABLE_TESTS: OFF
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-kernel:${AGENTRT_VERSION:-0.1.1}
     hostname: agentrt-kernel
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
@@ -190,7 +190,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.daemon
       target: gateway
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.1}
     hostname: agentrt-gateway
     restart: always
 
@@ -493,7 +493,7 @@ services:
       context: ..
       dockerfile: Docker/Dockerfile.openlab
       target: production                     # 使用 production target
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.0}
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.1}
     container_name: agentrt-openlab-prod
     hostname: agentrt-openlab
     restart: always
