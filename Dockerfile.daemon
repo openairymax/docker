@@ -21,41 +21,41 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DAEMON_SERVICES=all
 
-# 安装构建依赖（固定版本）
+# 安装构建依赖（固定版本，对齐 ubuntu 24.04 noble 仓库实际版本）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # C/C++ 编译工具
-    build-essential=12.9ubuntu3 \
-    cmake=3.22.1-1ubuntu2 \
-    ninja-build=1.11.1-1 \
-    gcc-12=12.3.0-1ubuntu1 \
-    g++-12=12.3.0-1ubuntu1 \
+    build-essential=12.10ubuntu1 \
+    cmake=3.28.3-1build7 \
+    ninja-build=1.11.1-2 \
+    gcc-12=12.4.0-2ubuntu1~24.04.1 \
+    g++-12=12.4.0-2ubuntu1~24.04.1 \
     # Python 构建工具链
-    python3=3.12.3-0ubuntu1 \
-    python3-dev=3.12.3-0ubuntu1 \
-    python3-pip=23.0.1+dfsg-1 \
-    python3-venv=3.12.3-0ubuntu1 \
+    python3=3.12.3-0ubuntu2.1 \
+    python3-dev=3.12.3-0ubuntu2.1 \
+    python3-pip=24.0+dfsg-1ubuntu1.3 \
+    python3-venv=3.12.3-0ubuntu2.1 \
     # SSL/TLS
-    libssl-dev=3.0.2-0ubuntu17.4 \
+    libssl-dev=3.0.13-0ubuntu3.12 \
     # 数据格式库
-    libyaml-dev=0.2.5-7build2 \
-    libcjson-dev=1.7.15-1build1 \
-    libcurl4-openssl-dev=8.5.0-1ubuntu3 \
-    libsqlite3-dev=3.45.1-1ubuntu2 \
-    libmicrohttpd-dev=1.0.1-4build1 \
-    libwebsockets-dev=4.3.3-1.1build1 \
-    libpq-dev=16.4-1ubuntu1 \
+    libyaml-dev=0.2.5-1build1 \
+    libcjson-dev=1.7.17-1 \
+    libcurl4-openssl-dev=8.5.0-2ubuntu10.11 \
+    libsqlite3-dev=3.45.1-1ubuntu2.7 \
+    libmicrohttpd-dev=1.0.0-2.1ubuntu2 \
+    libwebsockets-dev=4.3.3-1.1build3 \
+    libpq-dev=16.14-0ubuntu0.24.04.1 \
     # 包管理
-    pkg-config=1.8.1-1ubuntu2 \
-    git=2.34.1-1ubuntu1 \
-    curl=8.4.0-3ubuntu2 \
-    ca-certificates=20230311 \
+    pkg-config=1.8.1-2build1 \
+    git=1:2.43.0-1ubuntu7.3 \
+    curl=8.5.0-2ubuntu10.11 \
+    ca-certificates=20260601~24.04.1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /build
 
-# 复制守护进程源码和 Python SDK
-COPY AgentRT/agentrt/ ./agentrt/
-COPY AgentRT/CMakeLists.txt ./
+# 复制守护进程源码和 Python SDK（context 为伞仓根 airymaxhub/）
+COPY agentrt/ ./agentrt/
+COPY sdk/ ./sdk/
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
@@ -63,15 +63,13 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # 安装 Python SDK 和守护进程依赖（使用确定性版本锁定）
 RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0.41.2 \
-    && cd agentrt/toolkit/python \
-    && pip install --no-cache-dir -e . \
-    && cd ../../daemon \
-    && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+    && pip install --no-cache-dir -e sdk/sdk-python \
+    && pip cache purge 2>/dev/null || true
 
-# 编译 C/C++ 组件并清理缓存
-RUN cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && cmake --build ./build --parallel "$(nproc)" \
-    && cmake --install ./build \
+# 编译 C/C++ 组件并清理缓存（BAN-33：构建目录必须在源码树外）
+RUN cmake -S ./agentrt -B /build/out -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+    && cmake --build /build/out --parallel "$(nproc)" \
+    && cmake --install /build/out \
     && find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
     && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
@@ -93,25 +91,25 @@ LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# 安装最小运行时依赖
+# 安装最小运行时依赖（t64 包名对齐 ubuntu 24.04）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 进程管理器
-    supervisor=4.2.5-2ubuntu2 \
+    supervisor=4.2.5-1ubuntu0.1 \
     # HTTP 客户端
-    curl=8.4.0-3ubuntu2 \
+    curl=8.5.0-2ubuntu10.11 \
     # TLS 证书
-    ca-certificates=20230311 \
-    # 运行时库
-    libssl3=3.0.2-0ubuntu17.4 \
-    libyaml-0-2=0.2.5-7build2 \
-    libcjson4=1.7.15-1build1 \
-    libcurl4=8.5.0-1ubuntu3 \
-    libsqlite3-0=3.45.1-1ubuntu2 \
-    libmicrohttpd12=1.0.1-4build1 \
-    libwebsockets19=4.3.3-1.1build1 \
-    libpq5=16.4-1ubuntu1 \
-    procps=2:4.0.4-4ubuntu2 \
-    tzdata=2023c-1 \
+    ca-certificates=20260601~24.04.1 \
+    # 运行时库（Ubuntu 24.04 t64 迁移后包名带 t64 后缀）
+    libssl3t64=3.0.13-0ubuntu3.12 \
+    libyaml-0-2=0.2.5-1build1 \
+    libcjson1=1.7.17-1 \
+    libcurl4t64=8.5.0-2ubuntu10.11 \
+    libsqlite3-0=3.45.1-1ubuntu2.7 \
+    libmicrohttpd12t64=1.0.0-2.1ubuntu2 \
+    libwebsockets19t64=4.3.3-1.1build3 \
+    libpq5=16.14-0ubuntu0.24.04.1 \
+    procps=2:4.0.4-4ubuntu3.2 \
+    tzdata=2026c-0ubuntu0.24.04.1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && apt-get autoremove -y \
@@ -128,8 +126,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY --from=builder /usr/local/bin/ /app/bin/
 COPY --from=builder /usr/local/lib/ /app/lib/
 
-# 复制 Supervisor 配置并设置权限
-COPY Docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+# 复制 Supervisor 配置并设置权限（context 为伞仓根 airymaxhub/）
+COPY products/docker/config/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 RUN mkdir -p /app/bin /app/lib /app/supervisor/conf.d \
     && chown -R agentrt:agentrt /app/bin /app/lib /app/supervisor /etc/supervisor \
     && find /app/bin -type f -exec chmod 550 {} \; \
@@ -163,7 +161,7 @@ CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 FROM runtime AS gateway
 
 # 复制 Gateway 配置
-COPY Docker/config/gateway.yaml /app/config/gateway.yaml
+COPY products/docker/config/gateway.yaml /app/config/gateway.yaml
 
 # 额外暴露 Gateway 管理端口
 EXPOSE 18789/tcp 18790/tcp
@@ -183,11 +181,11 @@ FROM runtime AS debug
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdb=13.1-3ubuntu2 \
-    strace=6.6-0ubuntu1 \
-    htop=3.2.2-2 \
-    net-tools=2.10-0.1ubuntu4 \
-    vim-tiny=9.0.1568-1ubuntu1 \
+    gdb=15.1-1ubuntu1~24.04.1 \
+    strace=6.8-0ubuntu2 \
+    htop=3.3.0-4build1 \
+    net-tools=2.10-0.1ubuntu4.4 \
+    vim-tiny=2:9.1.0016-1ubuntu7.18 \
     && rm -rf /var/lib/apt/lists/*
 
 USER agentrt

@@ -35,8 +35,8 @@ services:
   # ===========================================================================
   kernel:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.kernel
+      context: ../..
+      dockerfile: docker/Dockerfile.kernel
       target: runtime
       args:
         BUILD_TYPE: Release
@@ -125,8 +125,8 @@ services:
   # ===========================================================================
   gateway:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.daemon
+      context: ../..
+      dockerfile: docker/Dockerfile.daemon
       target: gateway
     image: ${DOCKER_REGISTRY:-spharx}/agentrt-gateway:${AGENTRT_VERSION:-0.1.1}-staging
     container_name: agentrt-gateway-staging
@@ -468,8 +468,8 @@ services:
   # ===========================================================================
   openlab:
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.openlab
+      context: ../..
+      dockerfile: docker/Dockerfile.openlab
       target: production
     image: ${DOCKER_REGISTRY:-spharx}/agentrt-openlab:${AGENTRT_VERSION:-0.1.1}-staging
     container_name: agentrt-openlab-staging
@@ -546,8 +546,8 @@ services:
   desktop:
     image: ${DOCKER_REGISTRY:-spharx}/agentrt-desktop:${AGENTRT_VERSION:-latest}
     build:
-      context: ..
-      dockerfile: Docker/Dockerfile.desktop
+      context: ../..
+      dockerfile: products/docker/Dockerfile.desktop
     container_name: agentrt-desktop-staging
     restart: unless-stopped
     ports:
