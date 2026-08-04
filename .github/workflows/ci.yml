@@ -25,34 +25,17 @@ jobs:
             echo "[NO] LICENSE missing" && exit 1
           fi
 
-      - name: README check
+      - name: Dockerfile presence validation
         run: |
-          if [ -f "README.md" ] || [ -f "README_zh.md" ]; then
-            echo "[OK] README present"
+          # 本模块不强行跑容器测试；CI 至少校验所有 Dockerfile.* 与 compose 定义存在。
+          if ls Dockerfile* >/dev/null 2>&1; then
+            echo "[OK] Dockerfiles found:"
+            ls -1 Dockerfile*
           else
-            echo "[WARN] README missing"
+            echo "[NO] No Dockerfile found" && exit 1
           fi
-
-      - name: NOTICE check
-        run: |
-          if [ -f "NOTICE" ]; then
-            echo "[OK] NOTICE present"
-          else
-            echo "[WARN] NOTICE missing"
-          fi
-
-      - name: Dockerfile check
-        run: |
-          if [ -f "Dockerfile" ]; then
-            echo "[OK] Dockerfile present"
-            # 语法检查（不实际构建）
-            docker run --rm -i hadolint/hadolint < Dockerfile 2>&1 || echo "[WARN] hadolint issues (non-blocking)"
-          else
-            echo "[INFO] No Dockerfile, skipping"
-          fi
-
-      - name: docker-compose check
-        run: |
           if [ -f "docker-compose.yml" ]; then
             echo "[OK] docker-compose.yml present"
+          else
+            echo "[NO] docker-compose.yml missing" && exit 1
           fi

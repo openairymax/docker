@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # AgentRT 自动化备份与恢复脚本 (Backup & Recovery Script)
-# 版本：0.1.0 (Production-Grade)
+# 版本：0.1.1 (Production-Grade)
 # 用途：定期备份 AgentRT 所有持久化数据，支持快速恢复
 #
 # 使用方法:
@@ -80,7 +80,7 @@ BACKUP_FILES_COUNT=0
 # -----------------------------------------------------------------------------
 usage() {
     cat <<EOF
-AgentRT Backup & Recovery Script v0.1.0
+AgentRT Backup & Recovery Script v0.1.1
 
 Usage: $0 <ACTION> [OPTIONS]
 
@@ -351,7 +351,7 @@ generate_manifest() {
     
     cat > "$manifest_file" <<EOF
 {
-    "version": "0.1.0",
+    "version": "0.1.1",
     "environment": "$ENVIRONMENT",
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "hostname": "$(hostname)",
