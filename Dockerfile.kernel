@@ -68,8 +68,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 设置工作目录
 WORKDIR /build
 
-# 复制源代码和构建配置（context 为伞仓根 airymaxhub/，agentrt 管理仓在此）
+# 复制源代码、伞仓 cmake 模块和构建配置（context 为伞仓根 airymaxhub/，agentrt 管理仓在此）
 COPY agentrt/ ./AgentRT/
+COPY cmake/ ./cmake/
 
 # 配置 CMake（使用 Ninja 生成器加速构建）
 RUN cmake -S ./AgentRT -B . \
@@ -83,17 +84,12 @@ RUN cmake -S ./AgentRT -B . \
     -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror"
 
 # 并行构建项目（利用所有 CPU 核心）
-RUN cmake --build . --parallel "$(nproc)"
-
-# 安装构建产物到标准目录
-RUN cmake --install .
-
-# 运行测试套件（仅在显式启用时）
-RUN if [ "${ENABLE_TESTS}" = "ON" ]; then \
+RUN cmake --build . --parallel "$(nproc)" \
+    && cmake --install . \
+    && if [ "${ENABLE_TESTS}" = "ON" ]; then \
         ctest --output-on-failure --timeout 300; \
     fi
-
-# 清理构建中间产物以减小后续复制体积
+# 清理构建中间产物以减小后续复制体积（单独 RUN，避免 `|| true` 吞掉构建失败）
 RUN find /build -name "*.o" -delete 2>/dev/null || true
 
 # =============================================================================
@@ -143,8 +139,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/dpkg/* /usr/share/doc/* /usr/share/man/*
 
-# 创建专用系统用户（非 root，无 shell，无密码）
-RUN groupadd -r -g 1000 agentrt \
+# 创建专用系统用户（非 root，无 shell，无密码；先移除基础镜像默认 ubuntu 用户）
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupadd -r -g 1000 agentrt \
     && useradd -l -r -u 1000 -g agentrt -d /app -s /sbin/nologin agentrt \
     && mkdir -p /app/{bin,config,data,logs,lib,tmp,run} \
     && chown -R agentrt:agentrt /app \

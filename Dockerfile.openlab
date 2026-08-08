@@ -8,8 +8,8 @@
 # 2. 安全默认配置：非root用户、最小依赖、cap_drop
 # 3. 生产优化：Nginx反向代理 + Gzip压缩 + 安全头
 #
-# ⚠️ 构建上下文: 项目根目录 (context: ..)
-#    源码路径: AgentRT/agentrt/openlab/
+# ⚠️ 构建上下文: 伞仓根 (context: ../..)
+#    源码路径: ecosystem/openlab/
 # =============================================================================
 
 # =============================================================================
@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev=16.14-0ubuntu0.24.04.1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY AgentRT/agentrt/openlab/openlab/requirements.txt ./requirements.txt
+COPY ecosystem/openlab/openlab/requirements.txt ./requirements.txt
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -53,12 +53,13 @@ LABEL maintainer="SPHARX DevOps <devops@spharx.cn>" \
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx=1.24.0-1 \
-    curl=8.4.0-3ubuntu2 \
-    ca-certificates=20230311 \
-    libpq5=16.4-1ubuntu1 \
+    nginx=1.24.0-2ubuntu7.15 \
+    curl=8.5.0-2ubuntu10.11 \
+    ca-certificates=20260601~24.04.1 \
+    libpq5=16.14-0ubuntu0.24.04.1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
+    && userdel -r ubuntu 2>/dev/null || true \
     && groupadd -r -g 1000 openlab \
     && useradd -l -r -u 1000 -g openlab -d /app -s /sbin/nologin openlab \
     && mkdir -p /app/{backend,config,data,logs,run,tmp} \
