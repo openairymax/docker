@@ -44,6 +44,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmicrohttpd-dev=1.0.0-2.1ubuntu2 \
     libwebsockets-dev=4.3.3-1.1build3 \
     libpq-dev=16.14-0ubuntu0.24.04.1 \
+    # UUID 生成（uuid/uuid.h）
+    uuid-dev=2.39.3-9ubuntu6.5 \
     # 包管理
     pkg-config=1.8.1-2build1 \
     git=1:2.43.0-1ubuntu7.3 \
@@ -53,24 +55,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /build
 
-# 复制守护进程源码和 Python SDK（context 为伞仓根 airymaxhub/）
+# 复制守护进程源码、Python SDK 与伞仓 cmake 模块（context 为伞仓根 airymaxhub/）
 COPY agentrt/ ./agentrt/
 COPY sdk/ ./sdk/
+COPY cmake/ ./cmake/
 
 # 创建 Python 虚拟环境并安装依赖
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# 安装 Python SDK 和守护进程依赖（使用确定性版本锁定）
-RUN pip install --no-cache-dir --upgrade pip==23.0.1 setuptools==68.1.2 wheel==0.41.2 \
-    && pip install --no-cache-dir -e sdk/sdk-python \
-    && pip cache purge 2>/dev/null || true
+# 安装 Python SDK（使用系统 pip 24.0；pip 23.x 与 Python 3.12 不兼容）
+RUN pip install --no-cache-dir -e sdk/sdk-python
+RUN pip cache purge 2>/dev/null || true
 
-# 编译 C/C++ 组件并清理缓存（BAN-33：构建目录必须在源码树外）
-RUN cmake -S ./agentrt -B /build/out -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+# 编译 C/C++ 组件并安装（BAN-33：构建目录必须在源码树外）。
+# 生产镜像禁用 sanitizer/测试：缩小体积、避免 ASan 运行时开销。
+# 注意：清理步骤单独 RUN，避免 `|| true` 破坏 && 链导致 cmake 失败被静默吞掉。
+RUN cmake -S ./agentrt -B /build/out -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DENABLE_SANITIZERS=OFF \
+    -DBUILD_TESTS=OFF \
     && cmake --build /build/out --parallel "$(nproc)" \
-    && cmake --install /build/out \
-    && find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
+    && cmake --install /build/out
+RUN find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
     && pip cache purge 2>/dev/null || true \
     && rm -rf /root/.cache/pip /tmp/* /var/tmp/* \
     && mkdir -p /usr/local/bin /usr/local/lib
@@ -113,6 +121,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get clean \
     && apt-get autoremove -y \
+    && userdel -r ubuntu 2>/dev/null || true \
     && groupadd -r -g 1000 agentrt \
     && useradd -l -r -u 1000 -g agentrt -d /app -s /sbin/nologin agentrt \
     && mkdir -p /app/{bin,config,data,logs,run,supervisor/conf.d,tmp} \
