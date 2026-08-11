@@ -145,10 +145,13 @@ RUN mkdir -p /app/bin /app/lib /app/supervisor/conf.d \
 USER agentrt
 WORKDIR /app
 
-# 暴露最小必要端口（通过 Gateway 统一暴露）
-EXPOSE 18789/tcp 18790/tcp
+# 暴露最小必要端口（通过 Gateway 统一暴露；gateway_d 源码默认 HTTP 8080 / WebSocket 8081）
+EXPOSE 8080/tcp 8081/tcp
 
+# AIRY_HOME 为 daemon 源码（commons/platform/platform.c）实际读取的根目录环境变量，
+# AGENTRT_HOME 保留为容器内部约定（supervisord 两侧均注入，保证路径体系一致）
 ENV AGENTRT_HOME=/app \
+    AIRY_HOME=/app \
     AGENTRT_CONFIG_DIR=/app/config \
     AGENTRT_DATA_DIR=/app/data \
     AGENTRT_LOG_DIR=/app/logs \
@@ -158,9 +161,10 @@ ENV AGENTRT_HOME=/app \
     LANG=C.UTF-8 \
     PYTHONUNBUFFERED=1
 
-# 健康检查（检测 Supervisor 主进程）
+# 健康检查：探测 gateway 8080 的 JSON-RPC 端点（gateway 转发 info.system），
+# 失败时兜底检测 Supervisor 主进程存活
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -fsS http://localhost:18789/api/v1/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1
+    CMD curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"info.system","params":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1
 
 CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
@@ -172,12 +176,12 @@ FROM runtime AS gateway
 # 复制 Gateway 配置
 COPY products/docker/config/gateway.yaml /app/config/gateway.yaml
 
-# 额外暴露 Gateway 管理端口
-EXPOSE 18789/tcp 18790/tcp
+# 额外暴露 Gateway 端口（gateway_d 源码默认 HTTP 8080 / WebSocket 8081）
+EXPOSE 8080/tcp 8081/tcp
 
 ENV GATEWAY_ENABLED=true \
-    GATEWAY_PORT=18789 \
-    GATEWAY_ADMIN_PORT=18790
+    GATEWAY_PORT=8080 \
+    GATEWAY_ADMIN_PORT=8081
 
 # 覆盖启动命令，启动 Gateway + Supervisor
 CMD ["bash", "-c", "supervisord -c /etc/supervisor/supervisord.conf"]
