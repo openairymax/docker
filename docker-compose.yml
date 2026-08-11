@@ -1,11 +1,19 @@
 # =============================================================================
 # AgentRT Docker Compose - 开发环境
 # 版本: 0.1.1
-# 最后更新: 2026-07-02
+# 最后更新: 2026-08-10
 #
 # 使用方法:
 #   docker compose --env-file .env.dev up -d
 #   docker compose --env-file .env.dev down
+#
+# 服务说明:
+#   - kernel: 基础容器（所有 daemon 进程的构建/运行基座）
+#   - 其余 17 个服务与 agentrt/daemons 下的 daemon 一一对应（a2a_d/agent_d/
+#     channel_d/cupolas_d/gateway_d/hook_d/info_d/llm_d/market_d/mem_d/monit_d/
+#     notify_d/observe_d/plugin_d/sched_d/think_d/tool_d）
+#   - 每个 daemon 容器内由 supervisord 统一拉起 17 个 daemon 进程；
+#     健康检查统一探测 gateway 8080 的 JSON-RPC 端点（兜底检测 supervisord 存活）
 # =============================================================================
 
 services:
@@ -50,6 +58,278 @@ services:
       - agentrt-net
 
   # ===========================================================================
+  # A2A Daemon (a2a_d) — 智能体间通信（A2A 协议）
+  # ===========================================================================
+  a2a_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-a2a_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-a2a_d-dev
+    hostname: agentrt-a2a
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_data:/var/lib/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Agent Daemon (agent_d) — Agent 生命周期管理（spawn/invoke/terminate）
+  # ===========================================================================
+  agent_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-agent_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-agent_d-dev
+    hostname: agentrt-agent
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_data:/var/lib/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Channel Daemon (channel_d) — 通道服务（open/close/send/list）
+  # ===========================================================================
+  channel_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-channel_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-channel_d-dev
+    hostname: agentrt-channel
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Cupolas Daemon (cupolas_d) — 安全穹顶（权限裁决/净化/审计）
+  # ===========================================================================
+  cupolas_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-cupolas_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-cupolas_d-dev
+    hostname: agentrt-cupolas
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_logs:/var/log/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Hook Daemon (hook_d) — Hook 钩子注册/触发
+  # ===========================================================================
+  hook_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-hook_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-hook_d-dev
+    hostname: agentrt-hook
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Info Daemon (info_d) — 系统信息采集（无参数，Unix socket）
+  # ===========================================================================
+  info_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-info_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-info_d-dev
+    hostname: agentrt-info
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # LLM Daemon (llm_d) — LLM 服务（complete/stream/list_models）
+  # ===========================================================================
+  llm_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-llm_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-llm_d-dev
+    hostname: agentrt-llm
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
   # 市场调度 Daemon (market_d)
   # ===========================================================================
   market_d:
@@ -73,7 +353,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -86,6 +366,46 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Memory Daemon (mem_d) — 记忆存储（write/search/get/evolve）
+  # ===========================================================================
+  mem_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-mem_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-mem_d-dev
+    hostname: agentrt-mem
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_data:/var/lib/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     networks:
       - agentrt-net
 
@@ -113,7 +433,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -130,7 +450,7 @@ services:
       - agentrt-net
 
   # ===========================================================================
-  # 通知 Daemon (notify_d)
+  # 通知 Daemon (notify_d) — 通知推送（无参数，Unix socket + SSE/WS）
   # ===========================================================================
   notify_d:
     build:
@@ -151,7 +471,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -168,7 +488,7 @@ services:
       - agentrt-net
 
   # ===========================================================================
-  # 观测 Daemon (observe_d)
+  # 观测 Daemon (observe_d) — 观测指标（无参数，Unix socket + Prometheus :9090）
   # ===========================================================================
   observe_d:
     build:
@@ -191,7 +511,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -204,6 +524,46 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Plugin Daemon (plugin_d) — 插件加载/执行
+  # ===========================================================================
+  plugin_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-plugin_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-plugin_d-dev
+    hostname: agentrt-plugin
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_data:/var/lib/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     networks:
       - agentrt-net
 
@@ -229,7 +589,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -242,6 +602,44 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Think Daemon (think_d) — 双思考（GCCP+GRAD）
+  # ===========================================================================
+  think_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-think_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-think_d-dev
+    hostname: agentrt-think
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     networks:
       - agentrt-net
 
@@ -267,7 +665,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -284,7 +682,7 @@ services:
       - agentrt-net
 
   # ===========================================================================
-  # 网关服务 (Gateway)
+  # 网关服务 (Gateway) — HTTP 8080 / WebSocket 8081（与 gateway_d 源码默认一致）
   # ===========================================================================
   gateway:
     build:
@@ -308,7 +706,7 @@ services:
       - AGENTRT_KERNEL_HOST=kernel
       - AGENTRT_KERNEL_PORT=18080
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
