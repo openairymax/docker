@@ -33,8 +33,9 @@ AlertManager 可观测性栈串联起来。它是
 本模块提供 **四个多阶段 Dockerfile** —— `Dockerfile.kernel`、`Dockerfile.daemon`、
 `Dockerfile.openlab` 和 `Dockerfile.desktop` —— 每个产出多个命名构建 target
 （builder / runtime / gateway / debug / production / development）。Compose 编排将这些镜像组装为
-完整的运行时拓扑：一个微内核容器前置六个 Supervisor 管理的守护进程
-（`market_d`、`monit_d`、`notify_d`、`observe_d`、`sched_d`、`tool_d`）与一个三协议
+完整的运行时拓扑：一个微内核容器前置十三个 Supervisor 管理的守护进程
+（`a2a_d`、`agent_d`、`channel_d`、`cupolas_d`、`hook_d`、`llm_d`、`market_d`、
+`mem_d`、`monit_d`、`notify_d`、`sched_d`、`think_d`、`tool_d`）与一个三协议
 （HTTP / WebSocket / stdio）网关，由 PostgreSQL 提供关系存储、Redis 提供 IPC 缓存、
 会话与限流。
 
@@ -116,17 +117,24 @@ docker/
 
 ### Compose 编排的守护进程服务
 
-`docker-compose.yml`（开发）启动 kernel 加上六个 Supervisor 管理的守护进程与网关：
+`docker-compose.yml`（开发）启动 kernel 加上十三个 Supervisor 管理的守护进程与网关：
 
 | 服务 | 角色 |
 |------|------|
 | `kernel` | 微内核 IPC 核心，所有守护进程的唯一上游 |
-| `market_d` | 市场调度守护进程 |
-| `monit_d` | 监控守护进程 |
-| `notify_d` | 通知守护进程 |
-| `observe_d` | 观测守护进程 |
-| `sched_d` | 调度守护进程 |
-| `tool_d` | 工具分发守护进程 |
+| `a2a_d` | A2A 智能体通信守护进程 |
+| `agent_d` | Agent 生命周期守护进程 |
+| `channel_d` | 通道服务守护进程 |
+| `cupolas_d` | 安全穹顶守护进程（权限/净化/审计） |
+| `hook_d` | Hook 注册与触发守护进程 |
+| `llm_d` | LLM 服务守护进程 |
+| `market_d` | 工具市场守护进程 |
+| `mem_d` | 记忆存储守护进程 |
+| `monit_d` | 监控与可观测守护进程 |
+| `notify_d` | 通知推送守护进程 |
+| `sched_d` | 任务调度守护进程 |
+| `think_d` | 双思考守护进程 |
+| `tool_d` | 工具执行守护进程 |
 | `gateway` | 前置 kernel 的 HTTP/WS/stdio 网关（target: `gateway`） |
 
 ### 端口规划
