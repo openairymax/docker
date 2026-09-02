@@ -38,9 +38,10 @@ The module ships **four multi-stage Dockerfiles** — `Dockerfile.kernel`,
 `Dockerfile.daemon`, `Dockerfile.openlab` and `Dockerfile.desktop` — each
 producing one or more named build targets (builder / runtime / gateway / debug
 / production / development). The Compose manifests assemble these images into a
-complete runtime topology: a microkernel container fronts six
-supervisor-managed daemons (`market_d`, `monit_d`, `notify_d`, `observe_d`,
-`sched_d`, `tool_d`) and a three-protocol (HTTP / WebSocket / stdio) gateway,
+complete runtime topology: a microkernel container fronts thirteen
+supervisor-managed daemons (`a2a_d`, `agent_d`, `channel_d`, `cupolas_d`,
+`hook_d`, `llm_d`, `market_d`, `mem_d`, `monit_d`, `notify_d`, `sched_d`,
+`think_d`, `tool_d`) and a three-protocol (HTTP / WebSocket / stdio) gateway,
 backed by PostgreSQL for relational storage and Redis for IPC cache,
 sessions and rate limiting.
 
@@ -125,18 +126,25 @@ docker/
 
 ### Compose-orchestrated Daemon Services
 
-`docker-compose.yml` (dev) launches the kernel plus six supervisor-managed
+`docker-compose.yml` (dev) launches the kernel plus thirteen supervisor-managed
 daemons and the gateway:
 
 | Service | Role |
 |---------|------|
 | `kernel` | Microkernel IPC core, the only upstream for every daemon |
-| `market_d` | Market scheduling daemon |
-| `monit_d` | Monitoring daemon |
-| `notify_d` | Notification daemon |
-| `observe_d` | Observation daemon |
-| `sched_d` | Scheduling daemon |
-| `tool_d` | Tool dispatch daemon |
+| `a2a_d` | A2A agent communication daemon |
+| `agent_d` | Agent lifecycle daemon |
+| `channel_d` | Channel service daemon |
+| `cupolas_d` | Security dome daemon (permissions / sanitization / audit) |
+| `hook_d` | Hook registration and trigger daemon |
+| `llm_d` | LLM service daemon |
+| `market_d` | Tool marketplace daemon |
+| `mem_d` | Memory storage daemon |
+| `monit_d` | Monitoring & observability daemon |
+| `notify_d` | Notification push daemon |
+| `sched_d` | Task scheduling daemon |
+| `think_d` | Dual-thinking daemon |
+| `tool_d` | Tool execution daemon |
 | `gateway` | HTTP/WS/stdio gateway fronting the kernel (target: `gateway`) |
 
 ### Port Plan
