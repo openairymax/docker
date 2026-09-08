@@ -171,7 +171,7 @@ check_dockerfiles_multi_stage() {
             stages=$(grep -c "^FROM" "$dockerfile" 2>/dev/null || echo "0")
             
             if [[ $stages -ge 2 ]]; then
-                log_pass "$(basename $dockerfile): Multi-stage构建($stages阶段)"
+                log_pass "$(basename "$dockerfile"): Multi-stage构建(${stages}阶段)"
             else
                 log_warn "$(basename $dockerfile): 单阶段构建(建议使用multi-stage)"
             fi
