@@ -33,12 +33,13 @@ Docker Compose 编排清单（开发 / 预发布 / 生产）。预发布与生�
 本模块提供 **四个多阶段 Dockerfile**——`Dockerfile.kernel`、
 `Dockerfile.daemon`、`Dockerfile.openlab` 与 `Dockerfile.desktop`，各自产出
 一个或多个命名构建目标（builder / runtime / gateway / debug / production /
-development）。开发编排组装出完整的运行时拓扑：一个微内核容器、十三个由
+development）。开发编排组装出完整的运行时拓扑：一个微内核容器、十四个由
 `supervisord` 托管的守护进程容器（`a2a_d`、`agent_d`、`channel_d`、
-`cupolas_d`、`hook_d`、`llm_d`、`market_d`、`mem_d`、`monit_d`、`notify_d`、
-`sched_d`、`think_d`、`tool_d`），以及一个三协议（HTTP / WebSocket / stdio）
-网关。预发布与生产编排在此基础上扩展 PostgreSQL（关系存储）、Redis（缓存、
-会话与限流）、Prometheus + Grafana（监控），以及 OpenLab 与桌面端 Web 前端。
+`cupolas_d`、`hook_d`、`llm_d`、`market_d`、`maths_d`、`mem_d`、`monit_d`、
+`notify_d`、`sched_d`、`think_d`、`tool_d`），以及一个三协议（HTTP /
+WebSocket / stdio）网关。预发布与生产编排在此基础上扩展 PostgreSQL（关系存储）、
+Redis（缓存、会话与限流）、Prometheus + Grafana（监控），以及 OpenLab 与桌面端
+Web 前端。
 
 生产编排为所有服务实施对齐 CIS Docker Benchmark 的安全基线：
 `no-new-privileges:true`、`read_only` 只读文件系统、`cap_drop: ALL`、作用于
@@ -60,7 +61,7 @@ docker/
 ├── Dockerfile.desktop         # 桌面 Web 镜像（node:20-slim 构建器 +
 │                              #   nginx:1.27-alpine 运行时）
 │
-├── docker-compose.yml         # 开发栈（kernel + 13 守护进程 + gateway）
+├── docker-compose.yml         # 开发栈（kernel + 14 守护进程 + gateway）
 ├── docker-compose.staging.yml # 预发布栈（完整拓扑，默认启用监控）
 ├── docker-compose.prod.yml    # 生产栈（安全加固）
 │
@@ -121,7 +122,7 @@ docker/
 | 镜像 | Dockerfile | 构建目标 | 容器端口 | 用途 |
 |------|-----------|---------|----------|------|
 | `agentrt-kernel` | `Dockerfile.kernel` | `builder`、`runtime`、`debug` | `18080/tcp`（IPC API）· `9090/tcp`（指标） | 微内核核心——IPC、内存、任务、时间 |
-| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `8080/tcp` · `8081/tcp`（EXPOSE） | 十三个 supervisord 托管的守护进程；`gateway` 目标承载三协议网关（HTTP / WebSocket / stdio，见 `config/gateway.yaml`） |
+| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `8080/tcp` · `8081/tcp`（EXPOSE） | 十四个 supervisord 托管的守护进程；`gateway` 目标承载三协议网关（HTTP / WebSocket / stdio，见 `config/gateway.yaml`） |
 | `agentrt-openlab` | `Dockerfile.openlab` | `backend-builder`、`production`、`development` | `8000/tcp`（API）· `443/tcp`（Web，production）· `5173/tcp`（开发服务器，development） | OpenLab 交互平台——Python 后端 + Nginx 静态 |
 | `agentrt-desktop` | `Dockerfile.desktop` | `builder`、`production` | `80/tcp` | 桌面客户端静态 Web 构建，由 Nginx 提供 |
 
@@ -131,7 +132,7 @@ docker/
 
 ### Compose 编排的服务
 
-`docker-compose.yml`（开发）启动内核、十三个守护进程容器与网关——共 15 个
+`docker-compose.yml`（开发）启动内核、十四个守护进程容器与网关——共 16 个
 服务：
 
 | 服务 | 职责 |
@@ -144,6 +145,7 @@ docker/
 | `hook_d` | Hook 注册与触发守护进程 |
 | `llm_d` | LLM 服务守护进程 |
 | `market_d` | 工具市场守护进程 |
+| `maths_d` | 数学外挂计算守护进程（本地表达式求值） |
 | `mem_d` | 记忆存储守护进程 |
 | `monit_d` | 监控与可观测守护进程 |
 | `notify_d` | 通知推送守护进程 |
@@ -289,7 +291,7 @@ cd docker
 # 2. 配置环境
 cp .env.example .env
 
-# 3. 启动开发栈（kernel + 13 守护进程 + gateway）
+# 3. 启动开发栈（kernel + 14 守护进程 + gateway）
 docker compose -f docker-compose.yml --env-file .env up -d
 
 # 4. 健康检查

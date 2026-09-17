@@ -38,12 +38,12 @@ The module ships **four multi-stage Dockerfiles** — `Dockerfile.kernel`,
 `Dockerfile.daemon`, `Dockerfile.openlab` and `Dockerfile.desktop` — each
 producing one or more named build targets (builder / runtime / gateway / debug
 / production / development). The development manifest assembles a complete
-runtime topology: a microkernel container, thirteen daemon containers managed
+runtime topology: a microkernel container, fourteen daemon containers managed
 by `supervisord` (`a2a_d`, `agent_d`, `channel_d`, `cupolas_d`, `hook_d`,
-`llm_d`, `market_d`, `mem_d`, `monit_d`, `notify_d`, `sched_d`, `think_d`,
-`tool_d`) and a three-protocol (HTTP / WebSocket / stdio) gateway. The staging
-and production manifests extend this with PostgreSQL for relational storage,
-Redis for cache, sessions and rate limiting, Prometheus + Grafana for
+`llm_d`, `market_d`, `maths_d`, `mem_d`, `monit_d`, `notify_d`, `sched_d`,
+`think_d`, `tool_d`) and a three-protocol (HTTP / WebSocket / stdio) gateway.
+The staging and production manifests extend this with PostgreSQL for relational
+storage, Redis for cache, sessions and rate limiting, Prometheus + Grafana for
 monitoring, plus the OpenLab and desktop web frontends.
 
 The production manifest implements a CIS Docker Benchmark-aligned security
@@ -68,7 +68,7 @@ docker/
 ├── Dockerfile.desktop         # Desktop web image (node:20-slim builder +
 │                              #   nginx:1.27-alpine runtime)
 │
-├── docker-compose.yml         # Development stack (kernel + 13 daemons + gateway)
+├── docker-compose.yml         # Development stack (kernel + 14 daemons + gateway)
 ├── docker-compose.staging.yml # Staging stack (full topology, monitoring enabled)
 ├── docker-compose.prod.yml    # Production stack (security-hardened)
 │
@@ -129,7 +129,7 @@ both the registry and the version tag are configurable via environment.
 | Image | Dockerfile | Targets | Container ports | Purpose |
 |-------|-----------|---------|-----------------|---------|
 | `agentrt-kernel` | `Dockerfile.kernel` | `builder`, `runtime`, `debug` | `18080/tcp` (IPC API) · `9090/tcp` (metrics) | Microkernel core — IPC, memory, task, time |
-| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`, `runtime`, `gateway`, `debug` | `8080/tcp` · `8081/tcp` (EXPOSE) | The thirteen supervisor-managed daemons; the `gateway` target serves the three-protocol gateway (HTTP / WebSocket / stdio, see `config/gateway.yaml`) |
+| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`, `runtime`, `gateway`, `debug` | `8080/tcp` · `8081/tcp` (EXPOSE) | The fourteen supervisor-managed daemons; the `gateway` target serves the three-protocol gateway (HTTP / WebSocket / stdio, see `config/gateway.yaml`) |
 | `agentrt-openlab` | `Dockerfile.openlab` | `backend-builder`, `production`, `development` | `8000/tcp` (API) · `443/tcp` (web, production) · `5173/tcp` (dev server, development) | OpenLab interactive platform — Python backend + Nginx static |
 | `agentrt-desktop` | `Dockerfile.desktop` | `builder`, `production` | `80/tcp` | Static web build of the desktop client served by Nginx |
 
@@ -140,8 +140,8 @@ both the registry and the version tag are configurable via environment.
 
 ### Compose-orchestrated Services
 
-`docker-compose.yml` (dev) launches the kernel plus thirteen daemon containers
-and the gateway — 15 services in total:
+`docker-compose.yml` (dev) launches the kernel plus fourteen daemon containers
+and the gateway — 16 services in total:
 
 | Service | Role |
 |---------|------|
@@ -153,6 +153,7 @@ and the gateway — 15 services in total:
 | `hook_d` | Hook registration and trigger daemon |
 | `llm_d` | LLM service daemon |
 | `market_d` | Tool marketplace daemon |
+| `maths_d` | Maths computation daemon (local expression evaluation) |
 | `mem_d` | Memory storage daemon |
 | `monit_d` | Monitoring & observability daemon |
 | `notify_d` | Notification push daemon |
@@ -310,7 +311,7 @@ cd docker
 # 2. Configure environment
 cp .env.example .env
 
-# 3. Launch the dev stack (kernel + 13 daemons + gateway)
+# 3. Launch the dev stack (kernel + 14 daemons + gateway)
 docker compose -f docker-compose.yml --env-file .env up -d
 
 # 4. Verify health

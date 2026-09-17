@@ -9,11 +9,9 @@
 #
 # 服务说明:
 #   - kernel: 基础容器（所有 daemon 进程的构建/运行基座）
-#   - 其余 14 个服务为 daemon 容器（a2a_d/agent_d/channel_d/cupolas_d/gateway/
-#     hook_d/llm_d/market_d/mem_d/monit_d/notify_d/sched_d/think_d/tool_d）；
-#     M4 daemon 整编后 observe_d/info_d 归入 monit_d 可观测域、
-#     plugin_d 归入 tool_d 执行域，不再单独提供容器
-#   - 每个 daemon 容器内由 supervisord 统一拉起 daemon 进程；
+#   - 其余 15 个服务为 daemon 容器（a2a_d/agent_d/channel_d/cupolas_d/gateway/
+#     hook_d/llm_d/market_d/maths_d/mem_d/monit_d/notify_d/sched_d/think_d/tool_d）；
+#     每个 daemon 容器内由 supervisord 统一拉起 daemon 进程；
 #     健康检查统一探测 gateway 8080 的 JSON-RPC 端点（兜底检测 supervisord 存活）
 # =============================================================================
 
@@ -329,6 +327,46 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+    networks:
+      - agentrt-net
+
+  # ===========================================================================
+  # Maths Daemon (maths_d) — 数学外挂计算
+  # ===========================================================================
+  maths_d:
+    build:
+      context: ../..
+      dockerfile: products/docker/Dockerfile.daemon
+      target: runtime
+      args:
+        BUILD_TYPE: Debug
+    image: ${DOCKER_REGISTRY:-spharx}/agentrt-maths_d:${AGENTRT_VERSION:-0.1.1}-dev
+    container_name: agentrt-maths_d-dev
+    hostname: agentrt-maths
+    restart: unless-stopped
+    depends_on:
+      kernel:
+        condition: service_healthy
+    volumes:
+      - agentrt_data:/var/lib/agentrt
+    environment:
+      - AGENTRT_ENV=development
+      - AGENTRT_KERNEL_HOST=kernel
+      - AGENTRT_KERNEL_PORT=18080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
     networks:
       - agentrt-net
 
