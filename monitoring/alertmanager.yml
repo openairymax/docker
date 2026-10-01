@@ -24,15 +24,15 @@ route:
 receivers:
   - name: "default"
     webhook_configs:
-      - url: "${WEBHOOK_URL:-http://gateway:18789/api/v1/alerts}"
+      - url: "${WEBHOOK_URL:-http://gateway:2027/api/v1/alerts}"
 
   - name: "critical"
     webhook_configs:
-      - url: "${WEBHOOK_URL:-http://gateway:18789/api/v1/alerts/critical}"
+      - url: "${WEBHOOK_URL:-http://gateway:2027/api/v1/alerts/critical}"
 
   - name: "warning"
     webhook_configs:
-      - url: "${WEBHOOK_URL:-http://gateway:18789/api/v1/alerts/warning}"
+      - url: "${WEBHOOK_URL:-http://gateway:2027/api/v1/alerts/warning}"
 
 inhibit_rules:
   - source_match:

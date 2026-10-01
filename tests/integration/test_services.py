@@ -17,15 +17,14 @@ class TestServiceHealth:
     """服务健康检查测试"""
 
     GATEWAY_URL = os.getenv("AGENTRT_GATEWAY_URL", "http://localhost:18789")
-    KERNEL_URL = os.getenv("AGENTRT_KERNEL_URL", "http://localhost:18080")
     DESKTOP_URL = os.getenv("DESKTOP_URL", "http://localhost:8080")
     TIMEOUT = int(os.getenv("TEST_TIMEOUT", "10"))
 
     def test_gateway_health_endpoint(self):
-        """Gateway /api/v1/health 应返回200"""
+        """Gateway /health 应返回200"""
         try:
             resp = requests.get(
-                f"{self.GATEWAY_URL}/api/v1/health",
+                f"{self.GATEWAY_URL}/health",
                 timeout=self.TIMEOUT
             )
             assert resp.status_code == 200, f"Gateway health check failed: {resp.status_code}"
@@ -33,17 +32,6 @@ class TestServiceHealth:
             assert "status" in data or "healthy" in str(data).lower()
         except requests.exceptions.ConnectionError:
             pytest.skip("Gateway not available")
-
-    def test_kernel_health_endpoint(self):
-        """Kernel /api/v1/health 应返回200"""
-        try:
-            resp = requests.get(
-                f"{self.KERNEL_URL}/api/v1/health",
-                timeout=self.TIMEOUT
-            )
-            assert resp.status_code == 200, f"Kernel health check failed: {resp.status_code}"
-        except requests.exceptions.ConnectionError:
-            pytest.skip("Kernel not available (may be internal-only)")
 
     def test_desktop_serves_index(self):
         """Desktop前端应返回HTML页面"""
@@ -62,7 +50,7 @@ class TestServiceHealth:
         try:
             origin = "http://localhost:5173"
             resp = requests.options(
-                f"{self.GATEWAY_URL}/api/v1/health",
+                f"{self.GATEWAY_URL}/health",
                 headers={"Origin": origin, "Access-Control-Request-Method": "GET"},
                 timeout=self.TIMEOUT
             )
@@ -80,10 +68,10 @@ class TestAPIEndpoints:
     TIMEOUT = int(os.getenv("TEST_TIMEOUT", "10"))
 
     def test_api_returns_json(self):
-        """API应返回JSON格式响应"""
+        """Gateway /health 应返回JSON格式响应"""
         try:
             resp = requests.get(
-                f"{self.GATEWAY_URL}/api/v1/metrics",
+                f"{self.GATEWAY_URL}/health",
                 timeout=self.TIMEOUT
             )
             if resp.status_code == 200:

@@ -175,7 +175,7 @@ show_access_info() {
         dev)
             echo -e "  ${CYAN}服务地址:${NC}"
             echo -e "  • Gateway API:     http://localhost:18789"
-            echo -e "  • Gateway Admin:   http://localhost:18790"
+            echo -e "  • Gateway WS:      ws://localhost:18790"
             echo -e "  • Kernel IPC:     http://localhost:18080"
             echo -e "  • Kernel Metrics: http://localhost:9090"
             echo -e "  • PostgreSQL:     localhost:5432"

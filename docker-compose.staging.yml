@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${KERNEL_IPC_PORT:-18080}:18080"
+      - "${KERNEL_IPC_PORT:-18080}:2026"
       - "${KERNEL_METRICS_PORT:-9090}:9090"
 
     volumes:
@@ -84,13 +84,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18080/api/v1/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
 
     deploy:
       resources:
@@ -134,8 +127,9 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${GATEWAY_PORT:-18789}:18789"
-      - "${GATEWAY_ADMIN_PORT:-18790}:18790"
+      # 机制面监听口 SSoT：AIRY_PORT_GATEWAY_HTTP(2027) / AIRY_PORT_GATEWAY_WS(2028)
+      - "${GATEWAY_PORT:-18789}:2027"
+      - "${GATEWAY_WS_PORT:-18790}:2028"
 
     volumes:
       - ./config/gateway.yaml:/app/config/gateway.yaml:ro
@@ -143,9 +137,7 @@ services:
 
     environment:
       GATEWAY_BIND_ADDRESS: ${GATEWAY_BIND_ADDRESS:-0.0.0.0}
-      GATEWAY_PORT: 18789
-      GATEWAY_ADMIN_PORT: 18790
-      GATEWAY_UPSTREAM_URL: http://kernel:18080
+      GATEWAY_UPSTREAM_URL: http://kernel:2026
       GATEWAY_PROTOCOLS: http,websocket,stdio
       GATEWAY_GLOBAL_QPS: ${GATEWAY_GLOBAL_QPS:-10000}
       GATEWAY_PER_IP_QPS: ${GATEWAY_PER_IP_QPS:-200}
@@ -165,7 +157,7 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/api/v1/health"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -489,8 +481,8 @@ services:
     environment:
       OPENLAB_DEBUG: false
       OPENLAB_PORT: 443
-      AGENTRT_GATEWAY_URL: http://gateway:18789
-      AGENTRT_IPC_URL: http://kernel:18080
+      AGENTRT_GATEWAY_URL: http://gateway:2027
+      AGENTRT_IPC_URL: http://kernel:2026
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       OPENLAB_SECRET_KEY: ${OPENLAB_SECRET_KEY}

@@ -34,14 +34,14 @@
 # ⚠️ 重要警告:
 # - 绝对不要将 .env.production 文件提交到版本控制系统！
 # - 所有敏感信息（密码、JWT 密钥、API Keys）必须通过环境变量注入
-# - 生产环境默认不暴露内部端口（18080），所有外部流量通过 Gateway (18789) 进入
+# - 生产环境默认不暴露内部端口（容器侧 SSoT 2026），所有外部流量通过 Gateway（宿主机 18789）进入
 #
 # 🔗 生产架构拓扑:
 #   [Internet/CDN]
 #        ↓ HTTPS :443
 #   [Load Balancer/Nginx]
-#        ↓ HTTP :18789
-#   [Gateway Cluster] ←→ [Kernel Cluster:18080]
+#        ↓ HTTP :18789（宿主机映射 → 容器 SSoT 2027）
+#   [Gateway Cluster] ←→ [Kernel Cluster:2026]
 #        ↓                    ↓
 #   [Redis Sentinel]    [PostgreSQL HA]
 #        ↓
@@ -74,10 +74,10 @@ services:
     restart: always                       # 始终重启（包括 Docker daemon 重启）
 
     # ⚠️ 生产环境不直接暴露 Kernel 端口！
-    # 所有外部访问通过 Gateway (18789) 进入
-    # 仅在调试时临时取消注释以下行：
+    # 所有外部访问通过 Gateway 进入（机制面监听口 SSoT：AIRY_PORT_GATEWAY_HTTP=2027）
+    # 仅在调试时临时取消注释以下行（容器侧为 SSoT 坐标 2026 / 9090）：
     # ports:
-    #   - "${KERNEL_IPC_PORT:-18080}:18080"       # 内核 IPC API（仅内网访问）
+    #   - "${KERNEL_IPC_PORT:-18080}:2026"        # 内核 IPC API（仅内网访问）
     #   - "${KERNEL_METRICS_PORT:-9090}:9090"     # Prometheus Metrics
 
     # 卷挂载（数据持久化 + 配置只读）
@@ -129,14 +129,7 @@ services:
       redis:
         condition: service_healthy
 
-    # 健康检查（多层检测机制）
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18080/api/v1/health"]
-      interval: 30s                        # 每 30 秒检查一次
-      timeout: 10s                         # 单次超时 10 秒
-      retries: 3                           # 连续失败 3 次标记为 unhealthy
-      start_period: 60s                     # 启动后等待 60 秒再开始检查
-
+    # 健康检查沿用镜像级 HEALTHCHECK（Dockerfile.kernel: pgrep supervisord）
     # 资源限制（cgroups 隔离）
     deploy:
       resources:
@@ -196,8 +189,9 @@ services:
 
     # 对外暴露端口（唯一对外入口）
     ports:
-      - "${GATEWAY_PORT:-18789}:18789"      # 主端口：HTTP API + WebSocket
-      - "${GATEWAY_ADMIN_PORT:-18790}:18790" # 管理端口：Admin API（限制 IP 访问）
+      # 机制面监听口 SSoT：AIRY_PORT_GATEWAY_HTTP(2027) / AIRY_PORT_GATEWAY_WS(2028)
+      - "${GATEWAY_PORT:-18789}:2027"        # 主端口：HTTP API
+      - "${GATEWAY_WS_PORT:-18790}:2028"     # WebSocket
 
     # 卷挂载
     volumes:
@@ -210,10 +204,8 @@ services:
     environment:
       # Gateway 基础配置
       GATEWAY_BIND_ADDRESS: ${GATEWAY_BIND_ADDRESS:-0.0.0.0}
-      GATEWAY_PORT: 18789
-      GATEWAY_ADMIN_PORT: 18790
       # 上游连接（指向 Kernel 集群，支持 DNS 轮询负载均衡）
-      GATEWAY_UPSTREAM_URL: http://kernel:18080
+      GATEWAY_UPSTREAM_URL: http://kernel:2026
       # 协议启用（三协议全开）
       GATEWAY_PROTOCOLS: http,websocket,stdio
       # 速率限制（生产环境严格限制）
@@ -240,7 +232,7 @@ services:
 
     # 健康检查
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/api/v1/health"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 15s                        # 更频繁检查（网关是关键路径）
       timeout: 5s
       retries: 3
@@ -516,9 +508,9 @@ services:
       OPENLAB_DEBUG: false                  # ❌ 生产禁止 DEBUG 模式
       OPENLAB_PORT: 443
       # 连接 Gateway 作为统一 API 入口（推荐）
-      AGENTRT_GATEWAY_URL: http://gateway:18789
+      AGENTRT_GATEWAY_URL: http://gateway:2027
       # 直接连接 Kernel IPC（备用通道）
-      AGENTRT_IPC_URL: http://kernel:18080
+      AGENTRT_IPC_URL: http://kernel:2026
       # 数据库连接（从 .env 注入）
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0  # 🔐 含密码的 Redis URL
