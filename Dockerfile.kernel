@@ -170,8 +170,8 @@ USER agentrt
 # 设置工作目录
 WORKDIR /app
 
-# 暴露端口（与源码一致：Kernel IPC API）
-EXPOSE 18080/tcp 9090/tcp
+# 暴露端口（机制面监听口 SSoT：AIRY_PORT_KERNEL_IPC=2026；9090 为指标口）
+EXPOSE 2026/tcp 9090/tcp
 
 # 环境变量（最小化暴露，敏感信息通过 secrets 管理）
 ENV AGENTRT_HOME=/app \
@@ -180,7 +180,7 @@ ENV AGENTRT_HOME=/app \
     AGENTRT_LOG_DIR=/app/logs \
     AGENTRT_RUN_DIR=/app/run \
     AGENTRT_IPC_BIND_ADDR=0.0.0.0 \
-    AGENTRT_IPC_BIND_PORT=18080 \
+    AGENTRT_IPC_BIND_PORT=2026 \
     LOG_LEVEL=INFO \
     TZ=Asia/Shanghai \
     LANG=C.UTF-8 \

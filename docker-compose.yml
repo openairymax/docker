@@ -9,10 +9,11 @@
 #
 # 服务说明:
 #   - kernel: 基础容器（所有 daemon 进程的构建/运行基座）
-#   - 其余 15 个服务为 daemon 容器（a2a_d/agent_d/channel_d/cupolas_d/gateway/
-#     hook_d/llm_d/market_d/maths_d/mem_d/monit_d/notify_d/sched_d/think_d/tool_d）；
+#   - 其余 14 个服务为 daemon 容器（a2a_d/agent_d/channel_d/cupolas_d/gateway/
+#     llm_d/market_d/maths_d/mem_d/monit_d/notify_d/sched_d/think_d/tool_d）；
 #     每个 daemon 容器内由 supervisord 统一拉起 daemon 进程；
-#     健康检查统一探测 gateway 8080 的 JSON-RPC 端点（兜底检测 supervisord 存活）
+#     健康检查统一探测本容器内 gateway 的 /health 探针（SSoT 端口 2027），
+#     失败时兜底检测 supervisord 存活
 # =============================================================================
 
 services:
@@ -32,19 +33,13 @@ services:
     hostname: agentrt-kernel
     restart: unless-stopped
     ports:
-      - "${KERNEL_IPC_PORT:-18080}:18080"
+      - "${KERNEL_IPC_PORT:-2026}:2026"
     volumes:
       - agentrt_data:/var/lib/agentrt
       - agentrt_logs:/var/log/agentrt
     environment:
       - AGENTRT_ENV=development
-      - AGENTRT_KERNEL_PORT=18080
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18080/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      - AGENTRT_KERNEL_PORT=2026
     deploy:
       resources:
         limits:
@@ -78,9 +73,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -118,9 +113,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -156,9 +151,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -196,47 +191,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
-    networks:
-      - agentrt-net
-
-  # ===========================================================================
-  # Hook Daemon (hook_d) — Hook 钩子注册/触发
-  # ===========================================================================
-  hook_d:
-    build:
-      context: ../..
-      dockerfile: products/docker/Dockerfile.daemon
-      target: runtime
-      args:
-        BUILD_TYPE: Debug
-    image: ${DOCKER_REGISTRY:-spharx}/agentrt-hook_d:${AGENTRT_VERSION:-0.1.1}-dev
-    container_name: agentrt-hook_d-dev
-    hostname: agentrt-hook
-    restart: unless-stopped
-    depends_on:
-      kernel:
-        condition: service_healthy
-    environment:
-      - AGENTRT_ENV=development
-      - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -272,9 +229,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -312,9 +269,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -352,9 +309,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -392,9 +349,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -432,9 +389,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -470,9 +427,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -508,9 +465,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -546,9 +503,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -584,9 +541,9 @@ services:
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -603,7 +560,9 @@ services:
       - agentrt-net
 
   # ===========================================================================
-  # 网关服务 (Gateway) — HTTP 8080 / WebSocket 8081（与 gateway_d 源码默认一致）
+  # 网关服务 (Gateway) — 对外 HTTP 8080→2027 / WebSocket 8081→2028
+  # （机制面监听口 SSoT：AIRY_PORT_GATEWAY_HTTP / AIRY_PORT_GATEWAY_WS；
+  #   host 侧 8080/8081 为策略面契约，保留现值）
   # ===========================================================================
   gateway:
     build:
@@ -620,14 +579,14 @@ services:
       kernel:
         condition: service_healthy
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
-      - "${GATEWAY_WS_PORT:-8081}:8081"
+      - "${GATEWAY_PORT:-8080}:2027"
+      - "${GATEWAY_WS_PORT:-8081}:2028"
     environment:
       - AGENTRT_ENV=development
       - AGENTRT_KERNEL_HOST=kernel
-      - AGENTRT_KERNEL_PORT=18080
+      - AGENTRT_KERNEL_PORT=2026
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -X POST http://localhost:8080/api/ -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"info.system\",\"params\":{}}' > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2027/health > /dev/null 2>&1 || pgrep -x supervisord > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

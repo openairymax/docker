@@ -15,16 +15,16 @@ rule_files:
 
 scrape_configs:
   - job_name: "kernel"
-    metrics_path: "/api/v1/metrics"
+    metrics_path: "/metrics"
     static_configs:
       - targets: ["kernel:9090"]
         labels:
           service: "kernel"
 
   - job_name: "gateway"
-    metrics_path: "/api/v1/metrics"
+    metrics_path: "/metrics"
     static_configs:
-      - targets: ["gateway:18790"]
+      - targets: ["gateway:2027"]
         labels:
           service: "gateway"
 

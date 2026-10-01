@@ -33,9 +33,9 @@ Docker Compose 编排清单（开发 / 预发布 / 生产）。预发布与生�
 本模块提供 **四个多阶段 Dockerfile**——`Dockerfile.kernel`、
 `Dockerfile.daemon`、`Dockerfile.openlab` 与 `Dockerfile.desktop`，各自产出
 一个或多个命名构建目标（builder / runtime / gateway / debug / production /
-development）。开发编排组装出完整的运行时拓扑：一个微内核容器、十四个由
+development）。开发编排组装出完整的运行时拓扑：一个微内核容器、十三个由
 `supervisord` 托管的守护进程容器（`a2a_d`、`agent_d`、`channel_d`、
-`cupolas_d`、`hook_d`、`llm_d`、`market_d`、`maths_d`、`mem_d`、`monit_d`、
+`cupolas_d`、`llm_d`、`market_d`、`maths_d`、`mem_d`、`monit_d`、
 `notify_d`、`sched_d`、`think_d`、`tool_d`），以及一个三协议（HTTP /
 WebSocket / stdio）网关。预发布与生产编排在此基础上扩展 PostgreSQL（关系存储）、
 Redis（缓存、会话与限流）、Prometheus + Grafana（监控），以及 OpenLab 与桌面端
@@ -121,18 +121,19 @@ docker/
 
 | 镜像 | Dockerfile | 构建目标 | 容器端口 | 用途 |
 |------|-----------|---------|----------|------|
-| `agentrt-kernel` | `Dockerfile.kernel` | `builder`、`runtime`、`debug` | `18080/tcp`（IPC API）· `9090/tcp`（指标） | 微内核核心——IPC、内存、任务、时间 |
-| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `8080/tcp` · `8081/tcp`（EXPOSE） | 十四个 supervisord 托管的守护进程；`gateway` 目标承载三协议网关（HTTP / WebSocket / stdio，见 `config/gateway.yaml`） |
+| `agentrt-kernel` | `Dockerfile.kernel` | `builder`、`runtime`、`debug` | `2026/tcp`（IPC API）· `9090/tcp`（指标） | 微内核核心——IPC、内存、任务、时间 |
+| `agentrt-<name>_d` / `agentrt-gateway` | `Dockerfile.daemon` | `builder`、`runtime`、`gateway`、`debug` | `2027/tcp` · `2028/tcp`（EXPOSE） | 十四个 supervisord 托管的守护进程；`gateway` 目标承载三协议网关（HTTP / WebSocket / stdio，见 `config/gateway.yaml`） |
 | `agentrt-openlab` | `Dockerfile.openlab` | `backend-builder`、`production`、`development` | `8000/tcp`（API）· `443/tcp`（Web，production）· `5173/tcp`（开发服务器，development） | OpenLab 交互平台——Python 后端 + Nginx 静态 |
 | `agentrt-desktop` | `Dockerfile.desktop` | `builder`、`production` | `80/tcp` | 桌面客户端静态 Web 构建，由 Nginx 提供 |
 
-> 说明：守护进程镜像 `EXPOSE` 的 8080/8081 面向 supervisord 托管的守护进程；
-> 网关容器的监听端口由其配置决定（预发布/生产为 18789 API + 18790 管理），
-> 并通过 `GATEWAY_PORT` / `GATEWAY_ADMIN_PORT` 映射到宿主机。
+> 说明：容器侧机制面监听口统一取 SSoT 私有带（自 `2026` 起的登记坐标）——
+> 网关容器监听 `2027`（HTTP）/ `2028`（WS），守护进程经内核 IPC 互通、不单独发布；
+> 对外由 `${GATEWAY_PORT}` / `${GATEWAY_WS_PORT}` 映射到宿主机
+> （开发回退 `8080` / `8081`，预发布/生产回退 `18789` / `18790`）。
 
 ### Compose 编排的服务
 
-`docker-compose.yml`（开发）启动内核、十四个守护进程容器与网关——共 16 个
+`docker-compose.yml`（开发）启动内核、十三个守护进程容器与网关——共 15 个
 服务：
 
 | 服务 | 职责 |
@@ -142,7 +143,6 @@ docker/
 | `agent_d` | 智能体生命周期守护进程 |
 | `channel_d` | 通道服务守护进程 |
 | `cupolas_d` | 安全穹顶守护进程（权限 / 净化 / 审计） |
-| `hook_d` | Hook 注册与触发守护进程 |
 | `llm_d` | LLM 服务守护进程 |
 | `market_d` | 工具市场守护进程 |
 | `maths_d` | 数学外挂计算守护进程（本地表达式求值） |
@@ -163,10 +163,9 @@ docker/
 
 | 容器端口 | 服务 | 宿主机发布 | 用途 |
 |----------|------|------------|------|
-| 18789 | 网关 API（HTTP + WebSocket） | `${GATEWAY_PORT}`——开发回退 `8080`，预发布/生产回退 `18789`；`.env.example` 固定为 `18789` | 统一外部 API 入口 |
-| 18790 | 网关管理 API | `${GATEWAY_ADMIN_PORT:-18790}`（预发布/生产） | 管理 API（限制来源 IP） |
-| 8080 / 8081 | 守护进程（supervisord） | 不发布 | 内部守护进程 HTTP/状态 |
-| 18080 | 内核 IPC API | 仅开发：`${KERNEL_IPC_PORT:-18080}`——预发布/生产不发布 | 系统调用 API（面向网关） |
+| 2027 / 2028 | 网关 API（HTTP / WebSocket） | `${GATEWAY_PORT}` / `${GATEWAY_WS_PORT}`——开发回退 `8080` / `8081`，预发布/生产回退 `18789` / `18790` | 统一外部 API 入口 |
+| 2026 | 内核 IPC API | `${KERNEL_IPC_PORT}`——开发回退 `2026`，预发布回退 `18080`；生产不发布 | 系统调用 API（面向网关） |
+| 2032–2047 | 守护进程（supervisord，SSoT 私有带） | 不发布 | 经内核 IPC 互通，不对外监听 |
 | 9090 | 内核指标 | 不发布，网络内抓取 | Prometheus `/metrics` |
 | 8000 | OpenLab API | `${OPENLAB_API_PORT:-8000}` | OpenLab 后端 |
 | 443 / 5173 | OpenLab Web（production / development） | `${OPENLAB_WEB_PORT:-443}` | OpenLab 前端 |

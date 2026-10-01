@@ -53,15 +53,10 @@ check_service_health() {
     local start_time=$(date +%s%N)
 
     case $service in
-        kernel)
-            http_code=$(curl -s -o /dev/null -w '%{http_code}' \
-                --max-time ${TIMEOUT} \
-                http://localhost:18080/api/v1/health 2>/dev/null || echo "000")
-            ;;
         gateway)
             http_code=$(curl -s -o /dev/null -w '%{http_code}' \
                 --max-time ${TIMEOUT} \
-                http://localhost:18789/api/v1/health 2>/dev/null || echo "000")
+                http://localhost:18789/health 2>/dev/null || echo "000")
             ;;
         postgres)
             if docker exec "${container_name}" pg_isready -U agentrt -d agentrt >/dev/null 2>&1; then
