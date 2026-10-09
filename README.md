@@ -29,10 +29,11 @@ OpenLab and the desktop web frontend into reproducible OCI images, and provides
 three Docker Compose manifests (development / staging / production). The
 staging and production stacks add PostgreSQL, Redis and a Prometheus + Grafana
 observability stack; an Alertmanager routing template is provided under
-`monitoring/` for optional deployments. This is one of the three leaf
-repositories under the [`products/`](https://atomgit.com/openairymax/products)
-management repo, alongside `desktop` (personal client) and `memoryrovol`
-(commercial memory provider).
+`monitoring/` for optional deployments. This is one of the eight leaf
+repositories under the [`sdk/`](https://atomgit.com/openairymax/sdk)
+management repo, alongside the language SDKs (Python, Go, Rust, TypeScript),
+the interactive components (`console`, `tui`) and the desktop client
+(`desktop`).
 
 The module ships **four multi-stage Dockerfiles** — `Dockerfile.kernel`,
 `Dockerfile.daemon`, `Dockerfile.openlab` and `Dockerfile.desktop` — each
@@ -234,7 +235,7 @@ Docker Secrets workflow for Swarm deployments — see
                        │ COPY sources at build time
                        ▼
    ┌────────────────────────────────────────┐
-   │        products/docker (images)        │
+   │          sdk/docker (images)           │
    │  kernel · daemon · openlab · desktop   │
    └───────────────────┬────────────────────┘
                        │ docker compose up
@@ -252,7 +253,7 @@ Docker Secrets workflow for Swarm deployments — see
 - **Runtime configuration** — `config/` (gateway.yaml, supervisord.conf,
   nginx, Fluent Bit) is copied into the runtime stages and baked into the
   images.
-- **`products/desktop` source** — consumed by `Dockerfile.desktop` to build
+- **`sdk/desktop` source** — consumed by `Dockerfile.desktop` to build
   the web frontend image (pure Vite build served by Nginx; no Tauri native
   shell).
 - **Third-party OCI images** — `ubuntu:24.04`, `python:3.12-slim`,
@@ -266,10 +267,10 @@ Docker Secrets workflow for Swarm deployments — see
   staging and production via the three Compose manifests. The kernel is a
   stateful core and ships with `KERNEL_REPLICAS=1`; scale stateless components
   via Compose as needed.
-- **`products/desktop` users** — can point the desktop client at the gateway
+- **`sdk/desktop` users** — can point the desktop client at the gateway
   published by a locally launched stack (host port controlled by
   `GATEWAY_PORT`).
-- **`products/` management repo** — pins this repository as a git submodule
+- **`sdk/` management repo** — pins this repository as a git submodule
   for coordinated releases. Releases are tagged per `release.json` and
   `CHANGELOG.md`.
 - **Optional: `products/memoryrovol`** — the commercial memory provider can
@@ -404,7 +405,7 @@ See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the full deployment walkthrough
 ### Branch Strategy
 
 - Active development branch: **`main`**
-- The `products/` management repo tracks this repository via git submodule
+- The `sdk/` management repo tracks this repository via git submodule
   pointers.
 - Releases are tagged per `release.json` and `CHANGELOG.md`.
 
