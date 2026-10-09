@@ -27,8 +27,9 @@ Powered by OpenAirymax
 Docker Compose 编排清单（开发 / 预发布 / 生产）。预发布与生产环境在此基础上
 加入 PostgreSQL、Redis 以及 Prometheus + Grafana 可观测性栈；`monitoring/`
 目录另外提供 Alertmanager 告警路由配置模板，供按需部署使用。本仓库是
-[`products/`](https://atomgit.com/openairymax/products) 管理仓之下的三个叶子仓
-之一，与 `desktop`（个人客户端）、`memoryrovol`（商业记忆提供方）并列。
+[`sdk/`](https://atomgit.com/openairymax/sdk) 管理仓之下的八个叶子仓
+之一，与多语言 SDK（Python、Go、Rust、TypeScript）、交互式组件
+（`console`、`tui`）以及桌面客户端（`desktop`）并列。
 
 本模块提供 **四个多阶段 Dockerfile**——`Dockerfile.kernel`、
 `Dockerfile.daemon`、`Dockerfile.openlab` 与 `Dockerfile.desktop`，各自产出
@@ -221,7 +222,7 @@ Swarm 部署的可选 Docker Secrets 工作流——参见
                        │ 构建期 COPY 源码
                        ▼
    ┌────────────────────────────────────────┐
-   │        products/docker（镜像）          │
+   │          sdk/docker（镜像）           │
    │  kernel · daemon · openlab · desktop   │
    └───────────────────┬────────────────────┘
                        │ docker compose up
@@ -237,7 +238,7 @@ Swarm 部署的可选 Docker Secrets 工作流——参见
   （`context: ../..`），因此四个 Dockerfile 直接读取运行时源码。
 - **运行时配置**——`config/`（gateway.yaml、supervisord.conf、nginx、
   Fluent Bit）被复制进 runtime 阶段并烧入镜像。
-- **`products/desktop` 源码**——由 `Dockerfile.desktop` 消费以构建 Web 前端
+- **`sdk/desktop` 源码**——由 `Dockerfile.desktop` 消费以构建 Web 前端
   镜像（纯 Vite 构建由 Nginx 提供；不含 Tauri 原生外壳）。
 - **第三方 OCI 镜像**——`ubuntu:24.04`、`python:3.12-slim`、`node:20-slim`、
   `nginx:1.27-alpine`、`postgres:16-alpine`、`redis:7.2-alpine`、
@@ -249,9 +250,9 @@ Swarm 部署的可选 Docker Secrets 工作流——参见
 - **运维人员 / 企业部署**——通过三份 Compose 清单在开发、预发布与生产运行产出
   的镜像。内核为有状态核心，随附 `KERNEL_REPLICAS=1`；无状态组件可按需通过
   Compose 扩容。
-- **`products/desktop` 用户**——可将桌面客户端指向本地启动的 Compose 栈所发布
+- **`sdk/desktop` 用户**——可将桌面客户端指向本地启动的 Compose 栈所发布
   的网关（宿主端口由 `GATEWAY_PORT` 控制）。
-- **`products/` 管理仓**——以 git submodule 指针固定本仓库，统一协调发布。
+- **`sdk/` 管理仓**——以 git submodule 指针固定本仓库，统一协调发布。
   发布按 `release.json` 与 `CHANGELOG.md` 打标签。
 - **可选：`products/memoryrovol`**——商业记忆提供方可在容器化之前，于构建期
   通过 `-DAIRY_WITH_MEMORYROVOL=ON` 与 `AIRY_MEMORY_BACKEND=memoryrovol` 接入
@@ -382,7 +383,7 @@ docker stats --no-stream                               # 资源快照
 ### 分支策略
 
 - 活跃开发分支：**`main`**
-- `products/` 管理仓通过 git submodule 指针跟踪本仓库。
+- `sdk/` 管理仓通过 git submodule 指针跟踪本仓库。
 - 发布按 `release.json` 与 `CHANGELOG.md` 打标签。
 
 ## 许可证
